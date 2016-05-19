@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Main -->
+    <string name="app_name">Testapp - BEM</string>
+    <string name="title">Bandbreitenmessung</string>
+    <string name="action_settings">Einstellungen</string>
+    <string name="action_development_settings">Entwickler-Einstellungen</string>
+    <string name="start_button">Start</string>
+    <string name="reset_button">Reset</string>
+    <string name="result_button">Ergebnisse</string>
+    
+
+	<!-- Options -->
+	<string name="general">Allgemein</string>
+	<string name="data">Daten</string>
+	<string name="privacy">Privatsphäre</string>
+	
+	<string name="language">Sprache</string>
+	<string name="language_key">language</string>
+	<string-array name="language_listentries">
+		<item>deutsch</item>
+		<item>english</item>
+	</string-array>
+		<string-array name="language_listvalues">
+		<item>1</item>
+		<item>2</item>
+	</string-array>
+	
+	<string name="wifi">Wifi</string>
+	<string name="wifi_key">wifi</string>
+	<bool name="wifi_default">true</bool>
+	<string name="wifi_desc">Nur Messungen im WLAN ausführen</string>
+	
+	<string name="list_data">Datenaufkommen</string>
+	<string name="list_data_key">list_data</string>
+	<string-array name="list_data_listentries">
+	    <item>sehr wenig (1 Messung pro Verfahren)</item>
+		<item>wenig (3 Messung pro Verfahren)</item>
+		<item>mittel (4 Messungen pro Verfahren)</item>
+		<item>komplett (5 Messungen pro Verfahren)</item>
+	</string-array>
+	<string-array name="list_data_listvalues">
+		<item>1</item>
+		<item>3</item>
+		<item>4</item>
+		<item>5</item>
+	</string-array>
+	
+	<string name="privacy_gps">GPS-Daten</string>
+	<string name="privacy_gps_key">gps</string>
+	<bool   name="privacy_gps_default">false</bool>
+	<string name="privacy_gps_desc">Nur GPS-Daten vom Netzzugang verwenden</string>
+	
+	<string name="privacy_time">Uhrzeit</string>
+	<string name="privacy_time_key">time</string>
+	<bool   name="privacy_time_default">false</bool>
+	<string name="privacy_time_desc">Uhrzeit auf volle Stunde runden</string>
+	
+	<string name="privacy_provider">Provider</string>
+	<string name="privacy_provider_key">provider</string>
+	<bool   name="privacy_provider_default">false</bool>
+	<string name="privacy_provider_desc">Verwendeten Provider nicht ermitteln</string>
+	
+	<string name="info">Info</string>
+	<string name="info_key">info</string>
+	<string name="info_desc">Testapp Version 0.1</string>
+	
+	<!-- ...................................................................................................... -->
+	<!-- Development -->
+	<string name="methods">Methoden</string>
+	
+	
+	<string name="dev_server_ip">Server-IP:</string>
+	<string name="dev_server_ip_desc">IP des Servers</string>
+	<string name="dev_server_ip_key">serverip</string>
+	<string name="dev_server_ip_default">192.168.1.109</string>
+	
+	<string name="packetpair">PacketPair</string>
+	<string name="packetpair_key">packetpair</string>
+	<bool name="packetpair_default">true</bool>
+	
+	<string name="packettrain">PacketTrain</string>
+	<string name="packettrain_key">packettrain</string>
+	<bool name="packettrain_default">false</bool>
+	
+	<string name="gping">GPing</string>
+	<string name="gping_key">gping</string>
+	<bool name="gping_default">false</bool>
+	
+	<string name="download">Download</string>
+	<string name="download_key">download</string>
+	<bool name="download_default">false</bool>
+	
+	<string name="rtt">RTT (Round Trip Time)</string>
+	<string name="rtt_key">rtt</string>
+	<bool name="rtt_default">false</bool>
+	
+	<string name="packets">Pakete anzeigen</string>
+	<string name="packets_key">packets</string>
+	<string name="packets_desc">Vom Sniffer erfasste Pakete auf Konsole anzeigen</string>
+	<bool name="packets_default">true</bool>
+	
+</resources>

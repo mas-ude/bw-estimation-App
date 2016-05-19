@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Main -->
+    <string name="app_name">Testapp - BEM</string>
+    <string name="title">Bandwidth Estimation</string>
+    <string name="action_settings">Settings</string>
+    <string name="start_button">Start</string>
+    <string name="reset_button">Reset</string>
+    
+
+	<!-- Options -->
+	<string name="general">General</string>
+	<string name="data">Data</string>
+	<string name="privacy">Privacy</string>
+	
+	<string name="language">Language</string>
+	<string name="language_key">language</string>
+	<string-array name="language_listentries">
+		<item>deutsch</item>
+		<item>english</item>
+	</string-array>
+		<string-array name="language_listvalues">
+		<item>1</item>
+		<item>2</item>
+	</string-array>
+	
+	<string name="wifi">Wifi</string>
+	<string name="wifi_key">wifi</string>
+	<string name="wifi_desc">Only measure if Wifi is activated</string>
+	
+	<string name="list_data">Used Data</string>
+	<string name="list_data_key">list_data</string>
+	<string-array name="list_data_listentries">
+		<item>small</item>
+		<item>medium</item>
+		<item>complete</item>
+	</string-array>
+	<string-array name="list_data_listvalues">
+		<item>1</item>
+		<item>2</item>
+		<item>3</item>
+	</string-array>
+	
+	<string name="privacy_gps">GPS-Data</string>
+	<string name="privacy_gps_key">gps</string>
+	<string name="privacy_gps_desc">Only use GPS-Data from Network Access Point</string>
+	
+	<string name="privacy_time">Time</string>
+	<string name="privacy_time_key">time</string>
+	<string name="privacy_time_desc">Round Time to full hour</string>
+	
+		<string name="privacy_provider">Provider</string>
+	<string name="privacy_provider_key">provider</string>
+	<string name="privacy_provider_desc">Not determine used Provider</string>
+	
+	<string name="info">Info</string>
+	<string name="info_key">info</string>
+	<string name="info_desc">Testapp Version 0.1</string>
+	
+</resources>

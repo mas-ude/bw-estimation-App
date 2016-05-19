@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+	<PreferenceCategory
+    	android:title="@string/data">
+	    <CheckBoxPreference
+	    	android:key="@string/wifi_key"
+		    android:title="@string/wifi"
+		    android:summary="@string/wifi_desc"
+	    	android:defaultValue="@bool/wifi_default"/>
+	   
+		<ListPreference
+			android:key="@string/list_data_key"
+			android:title="@string/list_data"
+			android:summary="%s"
+			android:entries="@array/list_data_listentries"
+			android:defaultValue="3"
+			android:entryValues="@array/list_data_listvalues" />
+	</PreferenceCategory>
+	
+	<PreferenceCategory
+    	android:title="@string/privacy">
+		<CheckBoxPreference
+	    	android:key="@string/privacy_gps_key"
+		    android:title="@string/privacy_gps"
+		    android:summary="@string/privacy_gps_desc"
+	    	android:defaultValue="@bool/privacy_gps_default"/>
+		<CheckBoxPreference
+	    	android:key="@string/privacy_time_key"
+		    android:title="@string/privacy_time"
+		    android:summary="@string/privacy_time_desc"
+	    	android:defaultValue="@bool/privacy_time_default"/>
+		<CheckBoxPreference
+	    	android:key="@string/privacy_provider_key"
+		    android:title="@string/privacy_provider"
+		    android:summary="@string/privacy_provider_desc"
+	    	android:defaultValue="@bool/privacy_provider_default"/>
+	</PreferenceCategory>
+	
+	<PreferenceCategory
+	    android:title="@string/info">
+	    <EditTextPreference
+	        android:title="@string/info_desc"
+	        android:key="@string/info_key"
+	        android:selectable="false"/>
+	</PreferenceCategory>
+    
+</PreferenceScreen>

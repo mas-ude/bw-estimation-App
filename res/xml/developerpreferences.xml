@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+	<PreferenceCategory
+	    android:title="@string/general">
+	    <EditTextPreference
+	        android:title="@string/dev_server_ip"
+	        android:key="@string/dev_server_ip_key"
+	        android:defaultValue="@string/dev_server_ip_default"
+	        android:summary="@string/dev_server_ip_desc"
+	        android:inputType="textMultiLine" />
+	    
+	    <CheckBoxPreference
+	    	android:key="@string/packets_key"
+		    android:title="@string/packets"
+		    android:summary="@string/packets_desc"
+	    	android:defaultValue="@bool/packets_default"/>
+	</PreferenceCategory>
+	<PreferenceCategory
+	    android:title="@string/methods">  	    
+	    <CheckBoxPreference
+	    	android:key="@string/packetpair_key"
+		    android:title="@string/packetpair"
+	    	android:defaultValue="@bool/packetpair_default"/>
+	    <CheckBoxPreference
+	    	android:key="@string/packettrain_key"
+		    android:title="@string/packettrain"
+	    	android:defaultValue="@bool/packettrain_default"/>
+	    <CheckBoxPreference
+	    	android:key="@string/gping_key"
+		    android:title="@string/gping"
+	    	android:defaultValue="@bool/gping_default"/>
+	    <CheckBoxPreference
+	    	android:key="@string/rtt_key"
+		    android:title="@string/rtt"
+	    	android:defaultValue="@bool/rtt_default"/>
+	    <CheckBoxPreference
+	    	android:key="@string/download_key"
+		    android:title="@string/download"
+	    	android:defaultValue="@bool/download_default"/>
+	    
+
+    </PreferenceCategory>
+</PreferenceScreen>
