@@ -4,5 +4,5 @@ public interface DataModelListener
 {
 	public void updateConsoleView(String message);
 
-	public void updateMeasurementView(String message);
+	public void updateMeasurementView();
 }

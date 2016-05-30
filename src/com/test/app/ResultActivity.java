@@ -66,7 +66,7 @@ public class ResultActivity extends Activity
 					Intent nextScreen = new Intent(getApplicationContext(),
 							BandwidthDetailsActivity.class);
 					nextScreen.putExtra("Result", results.get(groupPosition)
-							.getObject());
+							.getObjects());
 					startActivity(nextScreen);
 				}
 				return false;

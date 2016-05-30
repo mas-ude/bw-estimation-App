@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
 import java.io.OutputStreamWriter;
+import java.net.ProtocolException;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -43,7 +44,7 @@ public class ExecuteMethodsTask extends AsyncTask<Object, Integer, Void>
 		progDailog.setMessage("Execute...");
 		progDailog.setIndeterminate(false);
 		progDailog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-		progDailog.setCancelable(true);
+		progDailog.setCancelable(false);
 		progDailog.show();
 	}
 
@@ -98,31 +99,38 @@ public class ExecuteMethodsTask extends AsyncTask<Object, Integer, Void>
 		DataObject saveObject = null;
 		ArrayList<Double> bandwidths = new ArrayList<Double>(5);
 		Socket socket = new Socket();
+
+		String serverAddress = model.getSharedPrefs().getString(
+				model.getContext().getString(R.string.dev_server_ip_key),
+				model.getContext().getString(R.string.dev_server_ip_default));
 		try
 		{
 
 			// TODO: GET VALUES FOR PORT AND TIMEOUT FROM MODEL (SAVE THIS
 			// IN MODEL BEFORE)
 
-			String serverAddress = model.getSharedPrefs().getString(
-					model.getContext().getString(R.string.dev_server_ip_key),
-					model.getContext()
-							.getString(R.string.dev_server_ip_default));
+			BufferedReader in = null;
+			BufferedWriter out = null;
+			// Don't establish Socket-Connection if none of these 3 Methods are
+			// used
+			if (map.containsKey(DataModel.PACKETPAIR)
+					|| map.containsKey(DataModel.GPING)
+					|| map.containsKey(DataModel.PACKETTRAIN))
+			{
+				socket = new Socket(serverAddress, 2600);
 
-			socket = new Socket(serverAddress, 2600);
+				// Set Timeout if Server is not able to response
+				socket.setSoTimeout(10000);
 
-			// Set Timeout if Server is not able to response
-			socket.setSoTimeout(10000);
+				socket.setSendBufferSize(1);
+				socket.setReceiveBufferSize(1);
 
-			socket.setSendBufferSize(1);
-			socket.setReceiveBufferSize(1);
+				in = new BufferedReader(new InputStreamReader(
+						socket.getInputStream()));
 
-			BufferedReader in = new BufferedReader(new InputStreamReader(
-					socket.getInputStream()));
-
-			BufferedWriter out = new BufferedWriter(new OutputStreamWriter(
-					socket.getOutputStream()));
-
+				out = new BufferedWriter(new OutputStreamWriter(
+						socket.getOutputStream()));
+			}
 			// Variable to update Progress
 			int count = 1;
 			// Execute Methods and Save Data
@@ -144,9 +152,20 @@ public class ExecuteMethodsTask extends AsyncTask<Object, Integer, Void>
 					{
 						model.informConsoleListeners("GPing Messung gestartet.");
 						bandwidths.add(model.getMethods().gPing(in, out));
-					} else if (method == DataModel.TEST)
+					} else if (method == DataModel.RTT)
 					{
-						// this.test(in, out);
+						model.informConsoleListeners("RTT Messung gestartet.");
+
+						bandwidths.add(model.getMethods().rtt(
+								DataModel.RTT,
+								DataModel.PROTOCOL + serverAddress + "/"
+										+ DataModel.DATARTT));
+					} else if (method == DataModel.DOWNLOAD)
+					{
+						model.informConsoleListeners("Download Messung gestartet.");
+						bandwidths.add(model.getMethods().download(
+								DataModel.PROTOCOL + serverAddress + "/"
+										+ DataModel.DATADOWNLOAD));
 					}
 				}
 				model.informConsoleListeners("Werte für Methode " + method
@@ -184,13 +203,12 @@ public class ExecuteMethodsTask extends AsyncTask<Object, Integer, Void>
 			fos.close();
 
 			// Inform Listeners that Measurement is over
-			model.informMeasurementListeners("Messung beendet.");
+			model.informMeasurementListeners();
 
 		} catch (SocketException e)
 		{
-			System.err
-					.println("SocketException: Keine Internetverbindung verfügbar.");
-			model.informConsoleListeners("SocketException: Keine Internetverbindung verfügbar.");
+			model.informConsoleListeners(model.getContext().getResources()
+					.getString(R.string.socketex));
 		} catch (SocketTimeoutException e)
 		{
 			System.err.print("SocketTimeoutException: Server antwortet nicht.");
@@ -201,6 +219,12 @@ public class ExecuteMethodsTask extends AsyncTask<Object, Integer, Void>
 			System.err
 					.print("UnknowHostException: Client kann die Verbindung zum Server nicht aufbauen.");
 			model.informConsoleListeners("UnknowHostException: Client kann die Verbindung zum Server nicht aufbauen.");
+			System.out.println(e.getMessage());
+		} catch (ProtocolException e)
+		{
+			System.err
+					.print("ProtocolException: Fehler bei verwendetem Protokoll.");
+			model.informConsoleListeners("ProtocolException: Fehler bei verwendetem Protokoll.");
 			System.out.println(e.getMessage());
 		} catch (IOException e)
 		{
@@ -220,6 +244,7 @@ public class ExecuteMethodsTask extends AsyncTask<Object, Integer, Void>
 
 			}
 		}
+
 		return null;
 	}
 

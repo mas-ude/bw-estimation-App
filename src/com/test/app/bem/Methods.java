@@ -88,11 +88,10 @@ public class Methods
 	/***************************************************************************
 	 * Download
 	 **************************************************************************/
-	public double download(String serverAddress) throws ProtocolException,
+	public double download(String urlToRead) throws ProtocolException,
 			IOException
 	{
-		return this
-				.rtt(DataModel.DOWNLOAD, "http://" + serverAddress + "/10MB");
+		return this.rtt(DataModel.DOWNLOAD, urlToRead);
 	}
 
 	/***************************************************************************

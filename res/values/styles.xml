@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
         Base application theme, dependent on API level. This theme is replaced
@@ -16,5 +16,23 @@
     <style name="AppTheme" parent="AppBaseTheme">
         <!-- All customizations that are NOT specific to a particular API-level can go here. -->
     </style>
-
+    
+    <style name="HeadLineTheme" parent="android:style/Theme">
+   		<item name="android:textSize">18sp</item>
+   		<item name="android:layout_gravity">center_horizontal</item>
+   		<item name="android:gravity">center</item>
+   		<item name="android:textStyle">bold</item>
+   		<item name="android:paddingTop">10dp</item>
+   		<item name="android:paddingBottom">10dp</item>
+   	</style>
+   	<style name="ControlButtonTheme" parent="android:style/Theme">
+   		<item name="android:background">@null</item>
+   		<item name="android:paddingLeft">16dp</item>
+   		<item name="android:paddingRight">16dp</item>
+   		<item name="android:paddingTop">8dp</item>
+   		<item name="android:paddingBottom">10dp</item>
+   		<item name="android:textSize">12sp</item>
+   		<item name="android:textStyle">bold</item>
+   	</style>
+    
 </resources>

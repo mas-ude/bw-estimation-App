@@ -38,6 +38,7 @@ import android.widget.Toast;
 
 import com.test.app.model.DataModel;
 import com.test.app.model.DataModelListener;
+import com.test.app.model.DataObject;
 import com.test.app.model.MyLocationListener;
 import com.test.app.model.ResultObject;
 import com.test.app.task.ExecuteMethodsTask;
@@ -49,7 +50,7 @@ public class MainActivity extends Activity implements OnClickListener,
 	private Button start;
 	private Button reset;
 	private Button result;
-	private TextView textArea, console, measurements, usedData;
+	private TextView information, console, measurements, usedData, period;
 	private SharedPreferences sharedPrefs;
 	private DataModel model;
 	private Process process;
@@ -78,18 +79,22 @@ public class MainActivity extends Activity implements OnClickListener,
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
+		// Initialize Model
 		this.model = new DataModel(sharedPrefs, this);
 		this.model.addListener(this);
 
+		// Ask wether Phone is rooted
 		this.askForRoot();
 
 		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		// Get TextViews
 		console = (TextView) findViewById(R.id.console);
-		textArea = (TextView) findViewById(R.id.show_info);
+		information = (TextView) findViewById(R.id.show_info);
+		// Statistic Views
 		measurements = (TextView) findViewById(R.id.measurements);
 		usedData = (TextView) findViewById(R.id.usedData);
+		period = (TextView) findViewById(R.id.period);
 
 		// Get Buttons
 		start = (Button) findViewById(R.id.start_button);
@@ -120,9 +125,23 @@ public class MainActivity extends Activity implements OnClickListener,
 			model.informConsoleListeners("Fehler beim Lesen der gespeicherten Dateien.");
 		}
 
-		// Write Information about loaded data
-		measurements.setText("Messungen: " + model.getNumberOfMeasurements());
-		usedData.setText("Datenverbrauch: " + "");
+		// Write Information about statistical data
+		measurements.setText(getResources().getString(R.string.measurements)
+				+ "\n" + model.getNumberOfMeasurements() + "\n");
+		usedData.setText(getResources().getString(R.string.useddata) + "\n"
+				+ model.getTotalUsedData() + "\n");
+		if (model.getResults().size() > 0)
+		{
+			period.setText(getResources().getString(R.string.period)
+					+ "\n"
+					+ model.getResults().get(0).getDate()
+					+ "\n"
+					+ model.getResults().get(model.getResults().size() - 1)
+							.getDate());
+		} else
+		{
+			period.setText(R.string.period + "\n-\n");
+		}
 
 		// Copy Sniffer from Assets Folder to App Directory if it isn't there
 		File f = new File(getCacheDir() + "/sniffer");
@@ -146,9 +165,23 @@ public class MainActivity extends Activity implements OnClickListener,
 				throw new RuntimeException(e);
 			}
 
-		textArea.setText(textArea.getText() + "FilePath: " + f.getPath() + "\n");
-		textArea.setText(textArea.getText() + "Context-Path: "
-				+ this.getFilesDir().getPath() + "\n");
+		// Display Last Measurement
+		if (model.getNumberOfMeasurements() > 0)
+		{
+			ResultObject last = model.getResults().get(
+					model.getResults().size() - 1);
+			ArrayList<DataObject> measurements = last.getObjects();
+			information.setText(getResources().getString(
+					R.string.last_measurement)
+					+ ": " + last.getDate() + "\n");
+			for (int i = 0; i < measurements.size(); i++)
+			{
+				information.setText(information.getText()
+						+ DataModel.getMethodName(measurements.get(i)
+								.getMethod()) + ": "
+						+ measurements.get(i).getAvgBandwidth() + " KB/s\n");
+			}
+		}
 
 		// Start Sniffer if Root Access is granted
 		if (model.isRoot())
@@ -164,51 +197,6 @@ public class MainActivity extends Activity implements OnClickListener,
 			}
 		}
 
-		boolean test = sharedPrefs.getBoolean(
-				getString(R.string.packetpair_key),
-				getResources().getBoolean(R.bool.packetpair_default));
-
-		boolean value = sharedPrefs.getBoolean(
-				getString(R.string.packetpair_key), false);
-		textArea.setText(textArea.getText() + "\n" + test + "Value: " + value
-				+ "\n");
-
-		/***************************************************************************
-		 * Check GPS Data
-		 **************************************************************************/
-
-		// Get GPS Data
-		boolean gps = sharedPrefs.getBoolean(
-				getString(R.string.privacy_gps_key),
-				getResources().getBoolean(R.bool.privacy_gps_default));
-
-		// gps = true = Network Access Point GPS
-		// gps = false = Device GPS
-
-		model.informMeasurementListeners("GPS Einstellung: " + gps);
-		Location locationGPS = null;
-
-		// Get exact Location of the Device
-		// If User enabled use of GPS of Access Point you can get Location
-		// from the Information of the Access Point (Cell ID...)
-		if (!gps
-				&& locationManager
-						.isProviderEnabled(LocationManager.GPS_PROVIDER))
-		{
-			locationManager.requestLocationUpdates(
-					LocationManager.GPS_PROVIDER, 1, 1, mLocationListener);
-
-			locationGPS = locationManager
-					.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-		}
-
-		if (locationGPS != null)
-		{
-			model.informMeasurementListeners("GPS Device: "
-					+ locationGPS.getLatitude() + "|"
-					+ locationGPS.getLongitude());
-		}
-
 		return true;
 	}
 
@@ -216,6 +204,7 @@ public class MainActivity extends Activity implements OnClickListener,
 	protected void onDestroy()
 	{
 		super.onDestroy();
+
 		// Kill Process that started C-Sniffer
 		if (process != null)
 		{
@@ -249,8 +238,6 @@ public class MainActivity extends Activity implements OnClickListener,
 		// Starts the calculation
 		if (v.getId() == R.id.start_button)
 		{
-			model.informConsoleListeners("Start Button wurde betätigt.");
-
 			// Get Network-Status Information about mobile and Wifi
 			ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
 			NetworkInfo wifi = connManager
@@ -260,7 +247,11 @@ public class MainActivity extends Activity implements OnClickListener,
 
 			// Create new ResultObject with general Data
 			ResultObject resultObject = new ResultObject(wifi.isConnected(),
-					mobile.isConnected(), DataModel.getActualDate());
+					mobile.isConnected(), DataModel.getActualDate(model
+							.getSharedPrefs().getBoolean(
+									getString(R.string.privacy_time_key),
+									getResources().getBoolean(
+											R.bool.privacy_time_default))));
 
 			// Get Provider
 			TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
@@ -280,10 +271,6 @@ public class MainActivity extends Activity implements OnClickListener,
 			resultObject.setCid(cid);
 			resultObject.setLac(lac);
 
-			// Output
-			model.informMeasurementListeners("CID: " + cid);
-			model.informMeasurementListeners("LAC: " + lac);
-
 			// Get MCC and MNC
 			String networkOperator = telephonyManager.getNetworkOperator();
 			if (networkOperator.length() > 3)
@@ -292,9 +279,6 @@ public class MainActivity extends Activity implements OnClickListener,
 				String mnc = networkOperator.substring(3);
 				resultObject.setMcc(mcc);
 				resultObject.setMnc(mnc);
-				// Output
-				model.informMeasurementListeners("MCC: " + mcc);
-				model.informMeasurementListeners("MNC: " + mnc);
 			}
 
 			// Get GPS Data
@@ -355,7 +339,8 @@ public class MainActivity extends Activity implements OnClickListener,
 						resultObject);
 			} else if (!mobile.isConnected() && !wifi.isConnected())
 			{
-				model.informConsoleListeners("Keine Netzwerkverbindung verfügbar.");
+				model.informConsoleListeners(getResources().getString(
+						R.string.noconnect));
 			} else if (wifiSetting
 					&& (!wifi.isConnected() || mobile.isConnected()))
 			{
@@ -403,7 +388,6 @@ public class MainActivity extends Activity implements OnClickListener,
 			// Reset the Views
 		} else if (v.getId() == R.id.reset_button)
 		{
-			textArea.setText("");
 			console.setText("");
 		} else if (v.getId() == R.id.result_button)
 		{
@@ -427,17 +411,43 @@ public class MainActivity extends Activity implements OnClickListener,
 		});
 	}
 
-	public void updateMeasurementView(String message)
+	public void updateMeasurementView()
 	{
-		final String m = message;
 		runOnUiThread(new Runnable()
 		{
 
 			public void run()
 			{
-				textArea.setText(textArea.getText() + m + "\n");
-				measurements.setText("Messungen: "
-						+ model.getNumberOfMeasurements());
+				// Update Number of Measurements
+				measurements.setText(getResources().getString(
+						R.string.measurements)
+						+ "\n" + model.getNumberOfMeasurements() + "\n");
+
+				// Update Measurement Period
+				period.setText(getResources().getString(R.string.period)
+						+ "\n"
+						+ model.getResults().get(0).getDate()
+						+ "\n"
+						+ model.getResults().get(model.getResults().size() - 1)
+								.getDate());
+
+				// Display Last Measurement
+				ResultObject last = model.getResults().get(
+						model.getResults().size() - 1);
+				ArrayList<DataObject> measurements = last.getObjects();
+				information.setText(getResources().getString(
+						R.string.last_measurement)
+						+ ": " + last.getDate() + "\n");
+				for (int i = 0; i < measurements.size(); i++)
+				{
+					information
+							.setText(information.getText()
+									+ DataModel.getMethodName(measurements.get(
+											i).getMethod()) + ": "
+									+ measurements.get(i).getAvgBandwidth()
+									+ " KB/s\n");
+				}
+
 			}
 		});
 	}

@@ -4,6 +4,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Locale;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -24,6 +25,9 @@ public class DataModel
 	public final static int GPING_SNIFFER = 16;
 
 	public final static String SAVEFILE = "save";
+	public final static String DATARTT = "512KB";
+	public final static String DATADOWNLOAD = "10MB";
+	public final static String PROTOCOL = "http://";
 
 	private ArrayList<ResultObject> results;
 	private ArrayList<DataModelListener> listeners;
@@ -94,6 +98,17 @@ public class DataModel
 		return results.size();
 	}
 
+	public long getTotalUsedData()
+	{
+		long usedData = 0;
+		for (int i = 0; i < results.size(); i++)
+		{
+			usedData = usedData + results.get(i).getUsedData();
+		}
+
+		return usedData;
+	}
+
 	public void addListener(DataModelListener l)
 	{
 		listeners.add(l);
@@ -150,11 +165,11 @@ public class DataModel
 		}
 	}
 
-	public void informMeasurementListeners(String message)
+	public void informMeasurementListeners()
 	{
 		for (DataModelListener l : listeners)
 		{
-			l.updateMeasurementView(message);
+			l.updateMeasurementView();
 		}
 	}
 
@@ -237,13 +252,13 @@ public class DataModel
 			}
 		}
 
-		if (sendPackets.size() != receivedPackets.size())
+		int size = 0;
+		if (sendPackets.size() > receivedPackets.size())
 		{
-			this.informConsoleListeners("Berechnung aus gesnifften Paketen nicht möglich. Arraylängen ungleich. SendPackets = "
-					+ sendPackets.size()
-					+ "|ReceivedPackets: "
-					+ receivedPackets.size());
-			return null;
+			size = receivedPackets.size();
+		} else
+		{
+			size = sendPackets.size();
 		}
 
 		ArrayList<Double> bandwidths = new ArrayList<Double>();
@@ -251,9 +266,9 @@ public class DataModel
 		{
 
 			Double deltaOut, deltaIn, delta;
-			for (int i = 0; i < sendPackets.size(); i += 2)
+			for (int i = 0; i < size; i += 2)
 			{
-				if (i >= sendPackets.size())
+				if (i >= (size - 1))
 				{
 					break;
 				}
@@ -314,11 +329,25 @@ public class DataModel
 		return result;
 	}
 
-	public static String getActualDate()
+	public static String getActualDate(boolean round)
 	{
+		// Get exakt Date
 		Calendar cal = Calendar.getInstance();
-		SimpleDateFormat dt = new SimpleDateFormat("d.M.yyyy,HH.mm.ss");
+		SimpleDateFormat dt = new SimpleDateFormat("d.M.yyyy,HH.mm.ss",
+				Locale.US);
 		DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.MEDIUM);
+
+		// if User has enabled that time should be inexactly, than the time is
+		// rounded to full hour
+		if (round)
+		{
+			if (cal.get(Calendar.MINUTE) >= 30)
+			{
+				cal.set(Calendar.HOUR, (Calendar.HOUR + 1));
+			}
+			cal.set(Calendar.MINUTE, 0);
+			cal.set(Calendar.SECOND, 0);
+		}
 		return dt.format(cal.getTime());
 	}
 }

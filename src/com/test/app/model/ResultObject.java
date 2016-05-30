@@ -3,6 +3,9 @@ package com.test.app.model;
 import java.io.Serializable;
 import java.util.ArrayList;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class ResultObject implements Serializable
 {
 	private static final long serialVersionUID = 1L;
@@ -12,6 +15,7 @@ public class ResultObject implements Serializable
 	private int cid, lac;
 	private String cCode, mcc, mnc, provider;
 	private double latitude, longitude;
+	private long usedData;
 
 	public ResultObject(boolean wifi, boolean mobile, String date)
 	{
@@ -28,16 +32,7 @@ public class ResultObject implements Serializable
 		this.provider = "";
 		this.latitude = 0;
 		this.longitude = 0;
-	}
-
-	public ArrayList<DataObject> getObject()
-	{
-		return objects;
-	}
-
-	public void setObject(ArrayList<DataObject> objects)
-	{
-		this.objects = objects;
+		this.usedData = 0;
 	}
 
 	public void addObject(DataObject object)
@@ -165,6 +160,21 @@ public class ResultObject implements Serializable
 		this.longitude = longitude;
 	}
 
+	public long getUsedData()
+	{
+		return usedData;
+	}
+
+	public void setUsedData(long usedData)
+	{
+		this.usedData = usedData;
+	}
+
+	public void addUsedData(long data)
+	{
+		this.usedData = this.usedData + data;
+	}
+
 	public ArrayList<String> getDisplayInformation()
 	{
 		ArrayList<String> result = new ArrayList<String>();
@@ -178,6 +188,47 @@ public class ResultObject implements Serializable
 		result.add("CID: " + this.cid);
 		result.add("GPS: " + this.latitude + "|" + this.longitude);
 		result.add("Details Messergebnisse");
+
+		return result;
+	}
+
+	public JSONObject getJSON() throws JSONException
+	{
+		JSONObject result = new JSONObject();
+
+		result.put("Wifi", this.wifi);
+		result.put("Mobile", this.mobile);
+		result.put("Provider", this.provider);
+		result.put("Country Code", this.cCode);
+		result.put("MCC", this.mcc);
+		result.put("MNC", this.mnc);
+		result.put("LAC", this.lac);
+		result.put("CID", this.cid);
+		result.put("Latitude", this.latitude);
+		result.put("Longitude", this.longitude);
+
+		// Add dataObjects to JSONObject
+		ArrayList<JSONObject> dataObjects = new ArrayList<JSONObject>();
+
+		for (int i = 0; i < this.objects.size(); i++)
+		{
+			JSONObject methodObject = new JSONObject();
+
+			methodObject.put("Method", this.objects.get(i).getMethod());
+			methodObject.put("AvgBandwidth", this.objects.get(i)
+					.getAvgBandwidth());
+
+			ArrayList<Double> bandwidths = new ArrayList<Double>();
+			for (int k = 0; k < this.objects.get(i).getBandwidths().size(); k++)
+			{
+				bandwidths.add(this.objects.get(i).getBandwidths().get(k));
+			}
+
+			methodObject.put("Bandwidths", bandwidths);
+			dataObjects.add(methodObject);
+		}
+
+		result.put("Objects", dataObjects);
 
 		return result;
 	}

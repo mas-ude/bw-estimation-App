@@ -6,11 +6,28 @@
     <string name="title">Bandbreitenmessung</string>
     <string name="action_settings">Einstellungen</string>
     <string name="action_development_settings">Entwickler-Einstellungen</string>
+    <string name="result_view">Ergebnisse</string>
+    <string name="bandwidth_view">Details Messergebnisse</string>
     <string name="start_button">Start</string>
     <string name="reset_button">Reset</string>
     <string name="result_button">Ergebnisse</string>
     
+    <!-- Words to Display -->
+    <string name="statistics">Statistiken</string>
+    <string name="console">Meldungen</string>
+    <string name="measurements">Messungen</string>
+    <string name="last_measurement">Letzte Messung</string>
+    <string name="useddata">Datenverbrauch</string>
+    <string name="period">Zeitraum</string>
 
+    <!-- Sentences to Display -->
+    <string name="noconnect">Keine Netzwerkverbindung verfügbar.</string>
+    <string name="socketex">SocketException: Keine Verbindung zum Server verfügbar.</string>
+    <string name="sockettimeoutex">SocketTimeoutException: Server antwortet nicht.</string>
+    <string name="unknownhostex">UnknowHostException: Client kann die Verbindung zum Server nicht aufbauen.</string>
+    <string name="ioex">IOException: Genereller Eingabe-/Ausgabefehler.</string>
+    
+    
 	<!-- Options -->
 	<string name="general">Allgemein</string>
 	<string name="data">Daten</string>
@@ -64,7 +81,7 @@
 	
 	<string name="info">Info</string>
 	<string name="info_key">info</string>
-	<string name="info_desc">Testapp Version 0.1</string>
+	<string name="info_desc">Testapp Version 0.8</string>
 	
 	<!-- ...................................................................................................... -->
 	<!-- Development -->
