@@ -28,7 +28,8 @@ public class SnifferThread extends Thread
 				+ model.getSharedPrefs().getString(
 						model.getContext()
 								.getString(R.string.dev_server_ip_key),
-						model.getContext().getString(R.string.dev_server_ip));
+						model.getContext().getString(
+								R.string.dev_server_ip_default));
 
 		final DataOutputStream os = new DataOutputStream(
 				process.getOutputStream());
@@ -36,10 +37,8 @@ public class SnifferThread extends Thread
 				process.getInputStream()));
 		try
 		{
-			model.informConsoleListeners("Send Command " + setRights);
 			os.writeBytes(setRights + "\n");
 			os.flush();
-			model.informConsoleListeners("Send Command " + startSniffer);
 			os.writeBytes(startSniffer + "\n");
 			os.flush();
 
@@ -49,12 +48,9 @@ public class SnifferThread extends Thread
 				model.addPacket(line);
 			}
 
-			model.informConsoleListeners("SNIFFERTHREAD WURDE BEENDET.");
-
 		} catch (IOException e)
 		{
-			e.printStackTrace();
+
 		}
 	}
-
 }

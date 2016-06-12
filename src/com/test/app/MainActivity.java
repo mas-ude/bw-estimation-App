@@ -2,92 +2,96 @@ package com.test.app;
 
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.util.ArrayList;
-import java.util.Locale;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
+import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.telephony.TelephonyManager;
-import android.telephony.gsm.GsmCellLocation;
+import android.support.v4.content.LocalBroadcastManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.test.app.model.Bandwidths;
 import com.test.app.model.DataModel;
 import com.test.app.model.DataModelListener;
-import com.test.app.model.DataObject;
-import com.test.app.model.MyLocationListener;
-import com.test.app.model.ResultObject;
-import com.test.app.task.ExecuteMethodsTask;
-import com.test.app.task.SnifferThread;
+import com.test.app.model.Results;
+import com.test.app.save.ServerService;
+import com.test.app.task.AlarmReceiver;
+import com.test.app.task.MyService;
 
 public class MainActivity extends Activity implements OnClickListener,
 		DataModelListener, OnSharedPreferenceChangeListener
 {
-	private Button start;
-	private Button reset;
-	private Button result;
-	private TextView information, console, measurements, usedData, period;
+	private Button start, clear, result, bottom, up, on, off;
+	private TextView information, console, measurements, usedData, period,
+			status;
 	private SharedPreferences sharedPrefs;
 	private DataModel model;
-	private Process process;
-	// GPS
-	private LocationListener mLocationListener;
-	private LocationManager locationManager;
+
+	private Intent intent;
+	private ProgressDialog progDailog;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 
+		// Set Layout
+		setContentView(R.layout.activity_main);
+
+		// Initialize Shared Preferences
 		sharedPrefs = PreferenceManager
 				.getDefaultSharedPreferences(getApplicationContext());
 		sharedPrefs.registerOnSharedPreferenceChangeListener(this);
 
-		mLocationListener = new MyLocationListener();
-		locationManager = (LocationManager) this
-				.getSystemService(Context.LOCATION_SERVICE);
+		// Set default Value of Root Status to false
+		sharedPrefs.edit().putBoolean("Root", false).apply();
+		// Set Value to show that App is active (important for Service)
+		sharedPrefs.edit().putBoolean("Active", true).apply();
 
-		setContentView(R.layout.activity_main);
-	}
+		LocalBroadcastManager.getInstance(this)
+				.registerReceiver(mMessageReceiver,
+						new IntentFilter(DataModel.BROADCASTRECEIVER));
 
-	@SuppressWarnings("unchecked")
-	// Read ArrayList<ResultObject> from File
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu)
-	{
 		// Initialize Model
 		this.model = new DataModel(sharedPrefs, this);
 		this.model.addListener(this);
 
-		// Ask wether Phone is rooted
-		this.askForRoot();
+		// Initialize Service to send Data to Server
+		Intent alarmIntent = new Intent(this, ServerService.class);
+		// Get PendingIntent with unique ID
+		PendingIntent pendingIntent = PendingIntent.getService(this, 0,
+				alarmIntent, 0);
 
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
+		AlarmManager manager = (AlarmManager) this
+				.getSystemService(Context.ALARM_SERVICE);
+
+		// manager.setRepeating(AlarmManager.RTC_WAKEUP,
+		// System.currentTimeMillis(), AlarmManager.INTERVAL_HOUR,
+		// pendingIntent);
+
 		// Get TextViews
 		console = (TextView) findViewById(R.id.console);
 		information = (TextView) findViewById(R.id.show_info);
@@ -95,121 +99,144 @@ public class MainActivity extends Activity implements OnClickListener,
 		measurements = (TextView) findViewById(R.id.measurements);
 		usedData = (TextView) findViewById(R.id.usedData);
 		period = (TextView) findViewById(R.id.period);
+		status = (TextView) findViewById(R.id.status_icon);
 
 		// Get Buttons
 		start = (Button) findViewById(R.id.start_button);
 		start.setOnClickListener(this);
 
-		reset = (Button) findViewById(R.id.reset_button);
-		reset.setOnClickListener(this);
+		clear = (Button) findViewById(R.id.clear_button);
+		clear.setOnClickListener(this);
+
+		bottom = (Button) findViewById(R.id.bottom_button);
+		bottom.setOnClickListener(this);
+
+		up = (Button) findViewById(R.id.maximize_console);
+		up.setOnClickListener(this);
 
 		result = (Button) findViewById(R.id.result_button);
 		result.setOnClickListener(this);
 
-		// Load possible saved data
-		FileInputStream fis;
-		ArrayList<ResultObject> results = null;
-		try
-		{
-			fis = openFileInput(DataModel.SAVEFILE);
-			ObjectInputStream input = new ObjectInputStream(fis);
-			results = (ArrayList<ResultObject>) input.readObject();
-			this.model.setResults(results);
-			input.close();
-			fis.close();
-		} catch (ClassNotFoundException e)
-		{
-			model.informConsoleListeners("Keine gespeicherten Daten vorhanden.");
-		} catch (IOException e1)
-		{
-			model.informConsoleListeners("Fehler beim Lesen der gespeicherten Dateien.");
-		}
+		on = (Button) findViewById(R.id.automatic_button);
+		on.setOnClickListener(this);
 
-		// Write Information about statistical data
-		measurements.setText(getResources().getString(R.string.measurements)
-				+ "\n" + model.getNumberOfMeasurements() + "\n");
-		usedData.setText(getResources().getString(R.string.useddata) + "\n"
-				+ model.getTotalUsedData() + "\n");
-		if (model.getResults().size() > 0)
+		off = (Button) findViewById(R.id.stop_button);
+		off.setOnClickListener(this);
+
+		// Initialize ProgressDialog
+		progDailog = new ProgressDialog(this);
+
+		// Initialize intent for Service
+		intent = new Intent(this, MyService.class);
+
+		// Load possible saved data
+		new Thread(new Runnable()
 		{
-			period.setText(getResources().getString(R.string.period)
-					+ "\n"
-					+ model.getResults().get(0).getDate()
-					+ "\n"
-					+ model.getResults().get(model.getResults().size() - 1)
-							.getDate());
+
+			@Override
+			public void run()
+			{
+				try
+				{
+					model.loadData();
+					// Inform Views to display new Data
+					model.informMeasurementListeners();
+				} catch (FileNotFoundException e)
+				{
+					model.informConsoleListeners(model.getContext()
+							.getResources().getString(R.string.noSavedData));
+					model.informMeasurementListeners();
+				} catch (IOException e1)
+				{
+					model.informConsoleListeners(model.getContext()
+							.getResources().getString(R.string.readex));
+					model.informMeasurementListeners();
+				}
+			}
+		}).start();
+
+		// Ask wether Phone is rooted
+		this.askForRoot();
+
+		// Set Status Icon if automatic Measurement is still activated
+		if (sharedPrefs.getBoolean("Status", false))
+		{
+			status.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ok,
+					0);
 		} else
 		{
-			period.setText(R.string.period + "\n-\n");
+			status.setCompoundDrawablesWithIntrinsicBounds(0, 0,
+					R.drawable.not_ok, 0);
 		}
 
-		// Copy Sniffer from Assets Folder to App Directory if it isn't there
-		File f = new File(getCacheDir() + "/sniffer");
-
-		if (!f.exists())
-			try
-			{
-
-				InputStream is = getAssets().open("sniffer");
-				int size = is.available();
-				byte[] buffer = new byte[size];
-				is.read(buffer);
-				is.close();
-				FileOutputStream fos = new FileOutputStream(f);
-				fos.write(buffer);
-				fos.flush();
-				fos.close();
-			} catch (Exception e)
-			{
-				console.setText(console.getText() + "RuntimeException");
-				throw new RuntimeException(e);
-			}
-
-		// Display Last Measurement
-		if (model.getNumberOfMeasurements() > 0)
+		// If Root Access is granted you can use the Sniffer
+		if (sharedPrefs.getBoolean("Root", false))
 		{
-			ResultObject last = model.getResults().get(
-					model.getResults().size() - 1);
-			ArrayList<DataObject> measurements = last.getObjects();
-			information.setText(getResources().getString(
-					R.string.last_measurement)
-					+ ": " + last.getDate() + "\n");
-			for (int i = 0; i < measurements.size(); i++)
-			{
-				information.setText(information.getText()
-						+ DataModel.getMethodName(measurements.get(i)
-								.getMethod()) + ": "
-						+ measurements.get(i).getAvgBandwidth() + " KB/s\n");
-			}
-		}
+			// Copy Sniffer from Assets Folder to App Directory if it isn't
+			// there
+			File f = new File(getCacheDir() + "/sniffer");
 
-		// Start Sniffer if Root Access is granted
-		if (model.isRoot())
-		{
-			try
-			{
-				process = Runtime.getRuntime().exec("su");
-				new SnifferThread(model, process).start();
-
-			} catch (IOException e)
-			{
-				e.printStackTrace();
-			}
+			if (!f.exists())
+				try
+				{
+					InputStream is = getAssets().open("sniffer");
+					int size = is.available();
+					byte[] buffer = new byte[size];
+					is.read(buffer);
+					is.close();
+					FileOutputStream fos = new FileOutputStream(f);
+					fos.write(buffer);
+					fos.flush();
+					fos.close();
+				} catch (Exception e)
+				{
+					console.setText(console.getText() + "RuntimeException");
+					throw new RuntimeException(e);
+				}
 		}
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu)
+	{
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.main, menu);
 
 		return true;
 	}
+
+	@Override
+	protected void onStop()
+	{
+		super.onStop();
+
+		// Save Informations to File
+		try
+		{
+			model.saveData();
+		} catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+
+		// Set Value to show that App isn't active anymore (important for
+		// Service)
+		sharedPrefs.edit().putBoolean("Active", false).apply();
+	};
 
 	@Override
 	protected void onDestroy()
 	{
 		super.onDestroy();
 
-		// Kill Process that started C-Sniffer
-		if (process != null)
+		// If a running Measurement is still in work stop Service
+		stopService(intent);
+		// Also stop Progress-Dialog
+		if (progDailog != null && progDailog.isShowing())
 		{
-			process.destroy();
+			progDailog.dismiss();
 		}
+
 	}
 
 	@Override
@@ -232,172 +259,101 @@ public class MainActivity extends Activity implements OnClickListener,
 		return super.onOptionsItemSelected(item);
 	}
 
+	@Override
 	public void onClick(View v)
 	{
 		// Start Button
 		// Starts the calculation
 		if (v.getId() == R.id.start_button)
 		{
-			// Get Network-Status Information about mobile and Wifi
-			ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-			NetworkInfo wifi = connManager
-					.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-			NetworkInfo mobile = connManager
-					.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
-
-			// Create new ResultObject with general Data
-			ResultObject resultObject = new ResultObject(wifi.isConnected(),
-					mobile.isConnected(), DataModel.getActualDate(model
-							.getSharedPrefs().getBoolean(
-									getString(R.string.privacy_time_key),
-									getResources().getBoolean(
-											R.bool.privacy_time_default))));
-
-			// Get Provider
-			TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-			String provider = telephonyManager.getNetworkOperatorName();
-			resultObject.setProvider(provider);
-
-			// Get Country Code
-			String cCode = Locale.getDefault().getCountry();
-			resultObject.setcCode(cCode);
-
-			// Get Cell ID
-			GsmCellLocation cellLocation = (GsmCellLocation) telephonyManager
-					.getCellLocation();
-
-			int cid = cellLocation.getCid();
-			int lac = cellLocation.getLac();
-			resultObject.setCid(cid);
-			resultObject.setLac(lac);
-
-			// Get MCC and MNC
-			String networkOperator = telephonyManager.getNetworkOperator();
-			if (networkOperator.length() > 3)
-			{
-				String mcc = networkOperator.substring(0, 3);
-				String mnc = networkOperator.substring(3);
-				resultObject.setMcc(mcc);
-				resultObject.setMnc(mnc);
-			}
-
-			// Get GPS Data
-			Location location = null;
-			// Get User Setting
-			boolean gps = sharedPrefs.getBoolean(
-					getString(R.string.privacy_gps_key), getResources()
-							.getBoolean(R.bool.privacy_gps_default));
-
-			// gps = true = Network Access Point GPS
-			// gps = false = Device GPS
-
-			// Get exact Location of the Device
-			// If User enabled use of GPS of Access Point you can get Location
-			// from the Information of the Access Point (Cell ID...)
-			if (!gps
-					&& locationManager
-							.isProviderEnabled(LocationManager.GPS_PROVIDER))
-			{
-				locationManager.requestLocationUpdates(
-						LocationManager.GPS_PROVIDER, 1, 1, mLocationListener);
-
-				location = locationManager
-						.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-				if (location == null
-						&& locationManager
-								.isProviderEnabled(LocationManager.NETWORK_PROVIDER))
-				{
-					location = locationManager
-							.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-				}
-
-			}
-
-			// Save Location
-			if (location != null)
-			{
-				resultObject.setLatitude(location.getLatitude());
-				resultObject.setLongitude(location.getLongitude());
-			}
-
-			boolean wifiSetting = sharedPrefs.getBoolean(
-					getString(R.string.wifi_key),
-					getResources().getBoolean(R.bool.wifi_default));
-
-			// Create Execution Task
-			ExecuteMethodsTask t = new ExecuteMethodsTask(this);
-
-			// Check if wifi or mobile is connected and perform accordingly
-			if (wifiSetting && wifi.isConnected())
-			{
-				t.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, model,
-						resultObject);
-			} else if (!wifiSetting
-					&& (mobile.isConnected() || wifi.isConnected()))
-			{
-				t.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, model,
-						resultObject);
-			} else if (!mobile.isConnected() && !wifi.isConnected())
-			{
-				model.informConsoleListeners(getResources().getString(
-						R.string.noconnect));
-			} else if (wifiSetting
-					&& (!wifi.isConnected() || mobile.isConnected()))
-			{
-				final Intent intent = new Intent(this, SettingsActivity.class);
-				intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-
-				new AlertDialog.Builder(this)
-						.setTitle("Wifi Einstellungen")
-						.setMessage(
-								"Kein WLAN aktiv. Messungen nur im WLAN ausführbar. Einstellungen ändern?")
-						.setPositiveButton(android.R.string.yes,
-								new DialogInterface.OnClickListener()
-								{
-									public void onClick(DialogInterface dialog,
-											int which)
-									{
-										// Go to Settings
-										startActivity(intent);
-									}
-								})
-						.setNegativeButton(android.R.string.no,
-								new DialogInterface.OnClickListener()
-								{
-									public void onClick(DialogInterface dialog,
-											int which)
-									{
-
-									}
-								}).setIcon(android.R.drawable.ic_dialog_alert)
-						.show();
-				return;
-			}
-
-			// Update ScrollView to jump to bottom
-			final ScrollView scrollview = ((ScrollView) findViewById(R.id.scrollView));
-			scrollview.post(new Runnable()
-			{
-				public void run()
-				{
-					scrollview.fullScroll(ScrollView.FOCUS_DOWN);
-				}
-			});
+			intent.putExtra("Results", model.getResults());
+			startService(intent);
 
 			// Reset Button
-			// Reset the Views
-		} else if (v.getId() == R.id.reset_button)
+			// Reset the Console View
+		} else if (v.getId() == R.id.clear_button)
 		{
 			console.setText("");
-		} else if (v.getId() == R.id.result_button)
+			// Minimize Console
+		} else if (v.getId() == R.id.bottom_button)
+		{
+			ViewGroup showPanel = (ViewGroup) findViewById(R.id.measurementView);
+			showPanel.setVisibility(View.VISIBLE);
+			// Maximize Console
+		} else if (v.getId() == R.id.maximize_console)
+		{
+			ViewGroup hiddenPanel = (ViewGroup) findViewById(R.id.measurementView);
+			hiddenPanel.setVisibility(View.GONE);
+		}
+		// Open View with Measurement Results
+		else if (v.getId() == R.id.result_button)
 		{
 			Intent nextScreen = new Intent(getApplicationContext(),
 					ResultActivity.class);
+			// Pass Result-Objects to ResultActivity to display
 			nextScreen.putExtra("Result", model.getResults());
 			startActivity(nextScreen);
+			// Start Automatic
+		} else if (v.getId() == R.id.automatic_button)
+		{
+			if (sharedPrefs.getBoolean("Status", false))
+			{
+				// Display Message that automatic Measurement is already started
+				model.informConsoleListeners(model.getContext().getResources()
+						.getString(R.string.automaticMeasurementEvenStarted));
+				return;
+			}
+			// Change Status in Preferences
+			sharedPrefs.edit().putBoolean("Status", true).apply();
+			// Display Message on Console
+			model.informConsoleListeners(model.getContext().getResources()
+					.getString(R.string.automaticMeasurementOn));
+
+			// Change Icon
+			status.setCompoundDrawablesWithIntrinsicBounds(0, 0, R.drawable.ok,
+					0);
+
+			// Start automatic Measurement
+			this.start();
+
+			// Stop Automatic
+		} else if (v.getId() == R.id.stop_button)
+		{
+			// Change Status in Preferences
+			sharedPrefs.edit().putBoolean("Status", false).apply();
+			// Display Message on Console
+			model.informConsoleListeners(model.getContext().getResources()
+					.getString(R.string.automaticMeasurementOff));
+			// Change Icon
+			status.setCompoundDrawablesWithIntrinsicBounds(0, 0,
+					R.drawable.not_ok, 0);
+
+			// Stop automatic Measurement
+			this.cancel();
 		}
 	}
 
+	@Override
+	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,
+			String key)
+	{
+		if (key.equals(getString(R.string.number_key)))
+		{
+			Toast.makeText(this, "Change NumberPicker Value",
+					Toast.LENGTH_SHORT).show();
+			if (sharedPrefs.getBoolean("Status", false))
+			{
+				// Cancel and restart AlarmManager with new repeating Value
+				this.cancel();
+				this.start();
+				Toast.makeText(this, "Restart AlarmManager with new Value",
+						Toast.LENGTH_SHORT).show();
+			}
+		}
+	}
+
+	// Methods from own Interface (DataModelListener)
+	@Override
 	public void updateConsoleView(String message)
 	{
 		final String m = message;
@@ -406,11 +362,16 @@ public class MainActivity extends Activity implements OnClickListener,
 
 			public void run()
 			{
+				// Set Text
 				console.setText(console.getText() + m + "\n");
+				// Set ScrollView to bottom
+				ScrollView scrollView = (ScrollView) findViewById(R.id.scrollView_console);
+				scrollView.fullScroll(ScrollView.FOCUS_DOWN);
 			}
 		});
 	}
 
+	@Override
 	public void updateMeasurementView()
 	{
 		runOnUiThread(new Runnable()
@@ -418,70 +379,61 @@ public class MainActivity extends Activity implements OnClickListener,
 
 			public void run()
 			{
-				// Update Number of Measurements
-				measurements.setText(getResources().getString(
-						R.string.measurements)
-						+ "\n" + model.getNumberOfMeasurements() + "\n");
-
-				// Update Measurement Period
-				period.setText(getResources().getString(R.string.period)
-						+ "\n"
-						+ model.getResults().get(0).getDate()
-						+ "\n"
-						+ model.getResults().get(model.getResults().size() - 1)
-								.getDate());
-
-				// Display Last Measurement
-				ResultObject last = model.getResults().get(
-						model.getResults().size() - 1);
-				ArrayList<DataObject> measurements = last.getObjects();
-				information.setText(getResources().getString(
-						R.string.last_measurement)
-						+ ": " + last.getDate() + "\n");
-				for (int i = 0; i < measurements.size(); i++)
+				if (model.getResults() != null && !model.getResults().isEmpty())
 				{
-					information
-							.setText(information.getText()
-									+ DataModel.getMethodName(measurements.get(
-											i).getMethod()) + ": "
-									+ measurements.get(i).getAvgBandwidth()
-									+ " KB/s\n");
+					// Update Number of Measurements
+					measurements.setText(getResources().getString(
+							R.string.measurements)
+							+ "\n" + model.getNumberOfMeasurements() + "\n");
+
+					// Update Used Data
+					usedData.setText(getResources()
+							.getString(R.string.useddata)
+							+ "\n~ "
+							+ model.getTotalUsedData() + " KB\n");
+
+					// Update Measurement Period
+					period.setText(getResources().getString(R.string.period)
+							+ "\n"
+							+ model.getResults().get(0).getDate()
+							+ "\n"
+							+ model.getResults()
+									.get(model.getResults().size() - 1)
+									.getDate());
+
+					// Display Last Measurement
+					Results last = model.getResults().get(
+							model.getResults().size() - 1);
+					ArrayList<Bandwidths> measurements = last.getObjects();
+					information.setText(getResources().getString(
+							R.string.last_measurement)
+							+ ": " + last.getDate() + "\n");
+					for (int i = 0; i < measurements.size(); i++)
+					{
+						information.setText(information.getText()
+								+ DataModel.getMethodName(measurements.get(i)
+										.getMethod()) + ": "
+								+ measurements.get(i).getAvgBandwidth()
+								+ " KB/s\n");
+					}
+				} else
+				{
+					// Update Number of Measurements
+					measurements.setText(getResources().getString(
+							R.string.measurements)
+							+ "\n0\n");
+
+					// Update Used Data
+					usedData.setText(getResources()
+							.getString(R.string.useddata) + "\n~ 0 KB\n");
+
+					// Update Measurement Period
+					period.setText(getResources().getString(R.string.period)
+							+ "\n-\n-");
 				}
 
 			}
 		});
-	}
-
-	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences,
-			String key)
-	{
-		Toast.makeText(this, "Einstellungen wurden geändert. " + key,
-				Toast.LENGTH_SHORT).show();
-
-		// New Server Address; restart Sniffer
-		if (key.equals(getString(R.string.dev_server_ip_key)))
-		{
-			if (process != null)
-			{
-				process.destroy();
-				try
-				{
-					process = Runtime.getRuntime().exec("su");
-				} catch (IOException e)
-				{
-					e.printStackTrace();
-				}
-				model.informConsoleListeners("C Sniffer beendet.");
-
-				new SnifferThread(model, process).start();
-				model.informConsoleListeners("C Sniffer neu gestartet.");
-			}
-		} else if (key.equals(getString(R.string.list_data_key)))
-		{
-			int value = Integer.parseInt(sharedPrefs.getString(
-					getString(R.string.list_data_key), "3"));
-			model.informConsoleListeners("Auswahl Datenaufkommen: " + value);
-		}
 	}
 
 	public void askForRoot()
@@ -505,7 +457,7 @@ public class MainActivity extends Activity implements OnClickListener,
 				if (p.exitValue() != 255)
 				{
 					Toast.makeText(this, "Root. ", Toast.LENGTH_SHORT).show();
-					model.setRoot(true);
+					sharedPrefs.edit().putBoolean("Root", true).apply();
 				} else
 				{
 					Toast.makeText(this, "Not Root. ", Toast.LENGTH_SHORT)
@@ -521,4 +473,142 @@ public class MainActivity extends Activity implements OnClickListener,
 		}
 	}
 
+	public void start()
+	{
+		new AlarmReceiver().onReceive(this, null);
+		// Toast.makeText(this, "Automatic started", Toast.LENGTH_SHORT).show();
+	}
+
+	public void cancel()
+	{
+		AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+		Intent alarmIntent = new Intent(getApplicationContext(),
+				MyService.class);
+		// Get PendingIntent with unique ID
+		PendingIntent pendingIntent = PendingIntent.getService(
+				getApplication(), DataModel.ALARMPID, alarmIntent, 0);
+		// Cancel PendingIntent
+		pendingIntent.cancel();
+		// Cancel Alarm for this PendingIntent
+		manager.cancel(pendingIntent);
+
+		// Toast.makeText(this, "Automatic stopped", Toast.LENGTH_SHORT).show();
+	}
+
+	private BroadcastReceiver mMessageReceiver = new BroadcastReceiver()
+	{
+		@Override
+		public void onReceive(Context context, Intent intent)
+		{
+			String command = intent.getStringExtra(DataModel.COMMAND);
+
+			if (command.equals(DataModel.RESULT))
+			{
+				// Get extra data included in the Intent
+				@SuppressWarnings("unchecked")
+				ArrayList<Results> results = (ArrayList<Results>) intent
+						.getSerializableExtra(DataModel.INFORMATION);
+
+				// Set Results to Model
+				model.setResults(results);
+
+				// Inform Views
+				model.informMeasurementListeners();
+
+			} else if (command.equals(DataModel.MESSAGE))
+			{
+				String message = intent.getStringExtra(DataModel.INFORMATION);
+
+				model.informConsoleListeners(message);
+			} else if (command.equals(DataModel.INITPROGRESS))
+			{
+				if (progDailog != null)
+				{
+					progDailog = new ProgressDialog(model.getContext());
+					progDailog.setMessage("Execute...");
+					progDailog.setIndeterminate(false);
+					progDailog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+					progDailog.setCancelable(false);
+					// Don't show if Activity isn't finished
+					if (!((Activity) model.getContext()).isFinishing())
+					{
+						progDailog.show();
+					}
+				}
+			} else if (command.equals(DataModel.PROGRESS))
+			{
+				int first = intent.getIntExtra("First", 0);
+				int second = intent.getIntExtra("Second", 0);
+				String method = intent.getStringExtra("Method");
+
+				if ((progDailog != null) && progDailog.isShowing())
+				{
+					progDailog
+							.setMessage(model.getContext().getResources()
+									.getString(R.string.execute)
+									+ " "
+									+ first
+									+ "/"
+									+ second
+									+ "\n["
+									+ method + "]");
+				}
+
+			} else if (command.equals(DataModel.DISMISSPROGRESS))
+			{
+				if ((progDailog != null) && progDailog.isShowing())
+				{
+					progDailog.dismiss();
+				}
+			} else if (command.equals(DataModel.DIALOG))
+			{
+				// To differ possible different dialogs
+				String dialogType = intent
+						.getStringExtra(DataModel.INFORMATION);
+
+				// Show Dialog, that Measurements are only execute with Wifi
+				if (dialogType.equals(DataModel.WIFIDIALOG))
+				{
+					final Intent i = new Intent(model.getContext(),
+							SettingsActivity.class);
+					i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+					new AlertDialog.Builder(model.getContext())
+							.setTitle(
+									model.getContext()
+											.getResources()
+											.getString(
+													R.string.wifiDialog_title))
+							.setMessage(
+									model.getContext()
+											.getResources()
+											.getString(
+													R.string.wifiDialog_message))
+							.setPositiveButton(android.R.string.yes,
+									new DialogInterface.OnClickListener()
+									{
+										public void onClick(
+												DialogInterface dialog,
+												int which)
+										{
+											// Go to Settings
+											startActivity(i);
+										}
+									})
+							.setNegativeButton(android.R.string.no,
+									new DialogInterface.OnClickListener()
+									{
+										public void onClick(
+												DialogInterface dialog,
+												int which)
+										{
+											return;
+										}
+									})
+							.setIcon(android.R.drawable.ic_dialog_alert).show();
+				}
+			}
+
+		}
+	};
 }

@@ -3,59 +3,68 @@
 
     <!-- Main -->
     <string name="app_name">Testapp - BEM</string>
-    <string name="title">Bandbreitenmessung</string>
-    <string name="action_settings">Einstellungen</string>
-    <string name="action_development_settings">Entwickler-Einstellungen</string>
-    <string name="result_view">Ergebnisse</string>
-    <string name="bandwidth_view">Details Messergebnisse</string>
+    <string name="title">Bandwidth Estimation</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_development_settings">Development-Settings</string>
+    <string name="result_view">Results</string>
+    <string name="bandwidth_view">Measurements Details</string>
     <string name="start_button">Start</string>
     <string name="reset_button">Reset</string>
-    <string name="result_button">Ergebnisse</string>
+    <string name="automatic_button">On</string>
+    <string name="stop_button">Off</string>
+    <string name="overview_button">Overview</string>
+    <string name="result_button">Results</string>
+    <string name="status">Status automatic Measurement</string>
     
     <!-- Words to Display -->
-    <string name="statistics">Statistiken</string>
-    <string name="console">Meldungen</string>
-    <string name="measurements">Messungen</string>
-    <string name="last_measurement">Letzte Messung</string>
-    <string name="useddata">Datenverbrauch</string>
-    <string name="period">Zeitraum</string>
+    <string name="statistics">Statistics</string>
+    <string name="console">Messages</string>
+    <string name="measurements">Measurements</string>
+    <string name="last_measurement">Last Measurement</string>
+    <string name="useddata">Used Data</string>
+    <string name="period">Period</string>  
 
-    <!-- Sentences to Display -->
+    <!-- Information Messages -->
     <string name="noconnect">Keine Netzwerkverbindung verfügbar.</string>
-    <string name="socketex">SocketException: Keine Verbindung zum Server verfügbar.</string>
-    <string name="sockettimeoutex">SocketTimeoutException: Server antwortet nicht.</string>
-    <string name="unknownhostex">UnknowHostException: Client kann die Verbindung zum Server nicht aufbauen.</string>
-    <string name="ioex">IOException: Genereller Eingabe-/Ausgabefehler.</string>
+   	<string name="sniffer_stopped">C-Sniffer terminated.</string>
+   	<string name="sniffer_restart">C-Sniffer restart.</string>
+   	<string name="noSavedData">No Saved Data.</string>
+   	<string name="automaticMeasurementEvenStarted">Automatic Measurement already started.</string>
+   	<string name="automaticMeasurementOn">Automatic Measurement started.</string>
+   	<string name="automaticMeasurementOff">Automatic Measurement terminated.</string>
     
+   	<!-- Error/Problem Messages -->
+    <string name="parseex">Parse Error while Reading saved Data.</string>
+   	<string name="readex">Error while Reading saved Data.</string>
+   	<string name="snifferex">Error while starting the Sniffer.</string>
+    
+    <string name="socketex">SocketException: No Internet Connection available.</string>
+    <string name="sockettimeoutex">SocketTimeoutException: Server does not reply.</string>
+    <string name="unknownhostex">UnknowHostException: Client cannot establish a connection to the server.</string>
+    <string name="protocolex">ProtocolException: Error with used Protocol.</string>
+    <string name="ioex">IOException: General Input/Output Error.</string>
+    
+    <!-- Wifi-Settings Dialog -->
+    <string name="wifiDialog_title">Wifi Settings</string>
+    <string name="wifiDialog_message">No Wifi active. Measurements only runs in WLAN. Change Settings?</string>
     
 	<!-- Options -->
-	<string name="general">Allgemein</string>
-	<string name="data">Daten</string>
-	<string name="privacy">Privatsphäre</string>
-	
-	<string name="language">Sprache</string>
-	<string name="language_key">language</string>
-	<string-array name="language_listentries">
-		<item>deutsch</item>
-		<item>english</item>
-	</string-array>
-		<string-array name="language_listvalues">
-		<item>1</item>
-		<item>2</item>
-	</string-array>
+	<string name="general">General</string>
+	<string name="data">Data</string>
+	<string name="privacy">Privacy</string>
 	
 	<string name="wifi">Wifi</string>
 	<string name="wifi_key">wifi</string>
 	<bool name="wifi_default">true</bool>
-	<string name="wifi_desc">Nur Messungen im WLAN ausführen</string>
+	<string name="wifi_desc">Only measure if Wifi is activated</string>
 	
-	<string name="list_data">Datenaufkommen</string>
+	<string name="list_data">Used Data</string>
 	<string name="list_data_key">list_data</string>
 	<string-array name="list_data_listentries">
-	    <item>sehr wenig (1 Messung pro Verfahren)</item>
-		<item>wenig (3 Messung pro Verfahren)</item>
-		<item>mittel (4 Messungen pro Verfahren)</item>
-		<item>komplett (5 Messungen pro Verfahren)</item>
+		<item>very small (1 Measurement per Method)</item>
+		<item>small (3 Measurements per Method)</item>
+		<item>medium (4 Measurements per Method)</item>
+		<item>complete (5 Measurements per Method)</item>
 	</string-array>
 	<string-array name="list_data_listvalues">
 		<item>1</item>
@@ -64,20 +73,25 @@
 		<item>5</item>
 	</string-array>
 	
-	<string name="privacy_gps">GPS-Daten</string>
+	<string name="number">Measurements</string>
+	<string name="number_key">number</string>
+	<integer name="number_default">24</integer>
+	<string name="number_desc">Number of Measurements per Day</string>
+	
+	<string name="privacy_gps">GPS-Data</string>
 	<string name="privacy_gps_key">gps</string>
 	<bool   name="privacy_gps_default">false</bool>
-	<string name="privacy_gps_desc">Nur GPS-Daten vom Netzzugang verwenden</string>
+	<string name="privacy_gps_desc">Only use GPS-Data from Network Access Point</string>
 	
-	<string name="privacy_time">Uhrzeit</string>
+	<string name="privacy_time">Time</string>
 	<string name="privacy_time_key">time</string>
 	<bool   name="privacy_time_default">false</bool>
-	<string name="privacy_time_desc">Uhrzeit auf volle Stunde runden</string>
+	<string name="privacy_time_desc">Round Time to full hour</string>
 	
 	<string name="privacy_provider">Provider</string>
 	<string name="privacy_provider_key">provider</string>
 	<bool   name="privacy_provider_default">false</bool>
-	<string name="privacy_provider_desc">Verwendeten Provider nicht ermitteln</string>
+	<string name="privacy_provider_desc">Not determine used Provider</string>
 	
 	<string name="info">Info</string>
 	<string name="info_key">info</string>
@@ -85,13 +99,12 @@
 	
 	<!-- ...................................................................................................... -->
 	<!-- Development -->
-	<string name="methods">Methoden</string>
-	
+	<string name="methods">Methods</string>
 	
 	<string name="dev_server_ip">Server-IP:</string>
-	<string name="dev_server_ip_desc">IP des Servers</string>
+	<string name="dev_server_ip_desc">IP of the Servers</string>
 	<string name="dev_server_ip_key">serverip</string>
-	<string name="dev_server_ip_default">192.168.1.109</string>
+	<string name="dev_server_ip_default">132.252.208.103</string>
 	
 	<string name="packetpair">PacketPair</string>
 	<string name="packetpair_key">packetpair</string>
@@ -113,9 +126,9 @@
 	<string name="rtt_key">rtt</string>
 	<bool name="rtt_default">false</bool>
 	
-	<string name="packets">Pakete anzeigen</string>
+	<string name="packets">Show Packets</string>
 	<string name="packets_key">packets</string>
-	<string name="packets_desc">Vom Sniffer erfasste Pakete auf Konsole anzeigen</string>
+	<string name="packets_desc">Display captured Packets from the Sniffer on console</string>
 	<bool name="packets_default">true</bool>
 	
 </resources>

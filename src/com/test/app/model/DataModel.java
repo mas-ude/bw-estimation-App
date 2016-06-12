@@ -1,14 +1,33 @@
 package com.test.app.model;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Locale;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.support.v4.content.LocalBroadcastManager;
+import android.telephony.TelephonyManager;
+import android.telephony.gsm.GsmCellLocation;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.test.app.R;
 import com.test.app.bem.Methods;
 
@@ -25,27 +44,41 @@ public class DataModel
 	public final static int GPING_SNIFFER = 16;
 
 	public final static String SAVEFILE = "save";
+	public final static String SAVEFILEDAY = "saveday";
 	public final static String DATARTT = "512KB";
 	public final static String DATADOWNLOAD = "10MB";
 	public final static String PROTOCOL = "http://";
+	// ID for AlarmManager PendingIntent to cancel even after reboot
+	public final static int ALARMPID = 1234598760;
 
-	private ArrayList<ResultObject> results;
+	// Messages for Broadcastreceiver
+	public final static String BROADCASTRECEIVER = "localBroadcast";
+
+	public final static String COMMAND = "command";
+	public final static String RESULT = "result";
+	public final static String MESSAGE = "message";
+	public final static String INFORMATION = "information";
+	public final static String INITPROGRESS = "initprogress";
+	public final static String PROGRESS = "progress";
+	public final static String DISMISSPROGRESS = "dismissprogress";
+	public final static String DIALOG = "dialog";
+	public final static String WIFIDIALOG = "wifidialog";
+
+	private ArrayList<Results> results;
 	private ArrayList<DataModelListener> listeners;
 	private ArrayList<Packet> packets;
 	private SharedPreferences sharedPrefs;
 	private Context context;
 	private Methods methods;
-	private boolean isRoot;
 
 	public DataModel(SharedPreferences sharedPrefs, Context context)
 	{
-		this.results = new ArrayList<ResultObject>();
+		this.results = new ArrayList<Results>();
 		this.listeners = new ArrayList<DataModelListener>();
 		this.packets = new ArrayList<Packet>();
 		this.sharedPrefs = sharedPrefs;
 		this.context = context;
 		this.methods = new Methods();
-		this.isRoot = false;
 	}
 
 	public Methods getMethods()
@@ -78,17 +111,17 @@ public class DataModel
 		this.context = context;
 	}
 
-	public void setResults(ArrayList<ResultObject> results)
+	public void setResults(ArrayList<Results> results)
 	{
 		this.results = results;
 	}
 
-	public ArrayList<ResultObject> getResults()
+	public ArrayList<Results> getResults()
 	{
 		return results;
 	}
 
-	public void addResultObject(ResultObject result)
+	public void addResultObject(Results result)
 	{
 		this.results.add(result);
 	}
@@ -119,16 +152,6 @@ public class DataModel
 		listeners.remove(l);
 	}
 
-	public boolean isRoot()
-	{
-		return isRoot;
-	}
-
-	public void setRoot(boolean isRoot)
-	{
-		this.isRoot = isRoot;
-	}
-
 	public void addPacket(String message)
 	{
 		String[] parts = message.split("-");
@@ -147,8 +170,10 @@ public class DataModel
 				this.getContext().getResources()
 						.getBoolean(R.bool.packets_default)))
 		{
-			this.informConsoleListeners(message);
-			this.informConsoleListeners("Anzahl Pakete: " + packets.size());
+
+			this.sendMessagestoBroadcast(DataModel.MESSAGE, message);
+			this.sendMessagestoBroadcast(DataModel.MESSAGE, "Anzahl Pakete: "
+					+ packets.size());
 		}
 	}
 
@@ -223,7 +248,7 @@ public class DataModel
 		return timestamp;
 	}
 
-	public DataObject calculateTimefromPackets(int method)
+	public Bandwidths calculateTimefromPackets(int method)
 	{
 		if (this.packets.isEmpty())
 		{
@@ -284,9 +309,9 @@ public class DataModel
 		} else if (method == DataModel.GPING)
 		{
 			double rttSmall, rttLarge, bandwidth;
-			for (int i = 0; i < sendPackets.size(); i += 2)
+			for (int i = 0; i < size; i += 2)
 			{
-				if (i >= sendPackets.size())
+				if (i >= (size - 1))
 				{
 					break;
 				}
@@ -305,13 +330,13 @@ public class DataModel
 		}
 
 		// Save calculated Bandwidhts in Object
-		DataObject data = null;
+		Bandwidths data = null;
 		if (method == DataModel.PACKETPAIR)
 		{
-			data = new DataObject(DataModel.PP_SNIFFER, bandwidths);
+			data = new Bandwidths(DataModel.PP_SNIFFER, bandwidths);
 		} else if (method == DataModel.GPING)
 		{
-			data = new DataObject(DataModel.GPING_SNIFFER, bandwidths);
+			data = new Bandwidths(DataModel.GPING_SNIFFER, bandwidths);
 		}
 		return data;
 	}
@@ -343,11 +368,219 @@ public class DataModel
 		{
 			if (cal.get(Calendar.MINUTE) >= 30)
 			{
-				cal.set(Calendar.HOUR, (Calendar.HOUR + 1));
+				cal.set(Calendar.HOUR, (cal.get(Calendar.HOUR) + 1));
 			}
 			cal.set(Calendar.MINUTE, 0);
 			cal.set(Calendar.SECOND, 0);
 		}
 		return dt.format(cal.getTime());
+	}
+
+	public HashMap<Integer, Integer> getUserSettingsForMeasurement()
+	{
+		// Get Settings
+		int round = Integer.parseInt(this.sharedPrefs.getString(
+				this.context.getString(R.string.list_data_key), "3"));
+
+		HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
+
+		if (this.sharedPrefs.getBoolean(this.context
+				.getString(R.string.packetpair_key), this.context
+				.getResources().getBoolean(R.bool.packetpair_default)))
+		{
+			map.put(DataModel.PACKETPAIR, round);
+		}
+		if (this.sharedPrefs.getBoolean(this.context
+				.getString(R.string.packettrain_key), this.context
+				.getResources().getBoolean(R.bool.packettrain_default)))
+		{
+			map.put(DataModel.PACKETTRAIN, round);
+		}
+		if (this.sharedPrefs.getBoolean(this.context
+				.getString(R.string.gping_key), this.context.getResources()
+				.getBoolean(R.bool.gping_default)))
+		{
+			map.put(DataModel.GPING, round);
+		}
+		if (this.sharedPrefs.getBoolean(this.context
+				.getString(R.string.rtt_key), this.context.getResources()
+				.getBoolean(R.bool.rtt_default)))
+		{
+			map.put(DataModel.RTT, round);
+		}
+		if (this.sharedPrefs.getBoolean(this.context
+				.getString(R.string.download_key), this.context.getResources()
+				.getBoolean(R.bool.download_default)))
+		{
+			map.put(DataModel.DOWNLOAD, 1);
+		}
+
+		return map;
+	}
+
+	public Results getDeviceInformations(ConnectivityManager connManager,
+			NetworkInfo wifi, NetworkInfo mobile)
+	{
+		// Create new ResultObject with general Data
+		Results resultObject = new Results(wifi.isConnected(),
+				mobile.isConnected(), DataModel.getActualDate(this.sharedPrefs
+						.getBoolean(
+								this.context
+										.getString(R.string.privacy_time_key),
+								this.context.getResources().getBoolean(
+										R.bool.privacy_time_default))));
+
+		// Get Provider
+		TelephonyManager telephonyManager = (TelephonyManager) this.context
+				.getSystemService(Context.TELEPHONY_SERVICE);
+		String provider = telephonyManager.getNetworkOperatorName();
+		resultObject.setProvider(provider);
+
+		// Get Country Code
+		String cCode = Locale.getDefault().getCountry();
+		resultObject.setcCode(cCode);
+
+		// Get Cell ID
+		GsmCellLocation cellLocation = (GsmCellLocation) telephonyManager
+				.getCellLocation();
+
+		int cid = cellLocation.getCid();
+		int lac = cellLocation.getLac();
+		resultObject.setCid(cid);
+		resultObject.setLac(lac);
+
+		// Get MCC and MNC
+		String networkOperator = telephonyManager.getNetworkOperator();
+		if (networkOperator.length() > 3)
+		{
+			String mcc = networkOperator.substring(0, 3);
+			String mnc = networkOperator.substring(3);
+			resultObject.setMcc(mcc);
+			resultObject.setMnc(mnc);
+		}
+
+		// Get GPS Data
+		Location location = null;
+		// Get User Setting
+		boolean gps = this.sharedPrefs.getBoolean(this.context
+				.getString(R.string.privacy_gps_key), this.context
+				.getResources().getBoolean(R.bool.privacy_gps_default));
+
+		// gps = true = Network Access Point GPS
+		// gps = false = Device GPS
+
+		// Get exact Location of the Device
+		// If User enabled use of GPS of Access Point you can get Location
+		// from the Information of the Access Point (Cell ID...)
+		LocationListener mLocationListener = new MyLocationListener();
+		LocationManager locationManager = (LocationManager) this.context
+				.getSystemService(Context.LOCATION_SERVICE);
+
+		if (!gps
+				&& locationManager
+						.isProviderEnabled(LocationManager.GPS_PROVIDER))
+		{
+			locationManager.requestLocationUpdates(
+					LocationManager.GPS_PROVIDER, 1, 1, mLocationListener);
+
+			location = locationManager
+					.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+			if (location == null
+					&& locationManager
+							.isProviderEnabled(LocationManager.NETWORK_PROVIDER))
+			{
+				location = locationManager
+						.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+			}
+
+		}
+
+		// Save Location
+		if (location != null)
+		{
+			resultObject.setLatitude(location.getLatitude());
+			resultObject.setLongitude(location.getLongitude());
+		}
+
+		return resultObject;
+	}
+
+	public void saveData() throws FileNotFoundException, IOException
+	{
+		FileOutputStream fos = this.context.openFileOutput(DataModel.SAVEFILE,
+				Context.MODE_PRIVATE);
+
+		Gson gson = new Gson();
+
+		fos.write(gson.toJson(this.results).getBytes());
+		fos.flush();
+		fos.close();
+	}
+
+	public void loadData() throws FileNotFoundException, IOException
+	{
+		FileInputStream fis;
+
+		fis = context.openFileInput(DataModel.SAVEFILE);
+
+		Reader reader = new InputStreamReader(fis);
+
+		Gson gson = new Gson();
+
+		Type collectionType = new TypeToken<ArrayList<Results>>()
+		{
+		}.getType();
+
+		ArrayList<Results> results = gson.fromJson(reader, collectionType);
+		if (results != null)
+		{
+			this.setResults(results);
+		}
+		fis.close();
+	}
+
+	public void deleteSendedData() throws FileNotFoundException, IOException
+	{
+		FileOutputStream fos = this.context.openFileOutput(DataModel.SAVEFILE,
+				Context.MODE_PRIVATE);
+
+		fos.write("".getBytes());
+		fos.flush();
+		fos.close();
+	}
+
+	public void sendResultstoBroadcast()
+	{
+		Intent intent = new Intent(DataModel.BROADCASTRECEIVER);
+
+		// Extra data
+		intent.putExtra(DataModel.COMMAND, DataModel.RESULT);
+		intent.putExtra(DataModel.INFORMATION, this.results);
+
+		LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+	}
+
+	public void sendMessagestoBroadcast(String command, String message)
+	{
+		Intent intent = new Intent(DataModel.BROADCASTRECEIVER);
+
+		// Extra data
+		intent.putExtra(DataModel.COMMAND, command);
+		intent.putExtra(DataModel.INFORMATION, message);
+
+		LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+	}
+
+	public void updateProgress(int first, int second, String method)
+	{
+		Intent intent = new Intent(DataModel.BROADCASTRECEIVER);
+
+		// Extra data
+		intent.putExtra(DataModel.COMMAND, DataModel.PROGRESS);
+		intent.putExtra("First", first);
+		intent.putExtra("Second", second);
+		intent.putExtra("Method", method);
+
+		LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
 	}
 }

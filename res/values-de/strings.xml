@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Main -->
+    <string name="app_name">Testapp - BEM</string>
+    <string name="title">Bandbreitenmessung</string>
+    <string name="action_settings">Einstellungen</string>
+    <string name="action_development_settings">Entwickler-Einstellungen</string>
+    <string name="result_view">Ergebnisse</string>
+    <string name="bandwidth_view">Details Messergebnisse</string>
+    <string name="start_button">Start</string>
+    <string name="reset_button">Reset</string>
+    <string name="automatic_button">An</string>
+    <string name="stop_button">Aus</string>
+    <string name="overview_button">Übersicht</string>
+    <string name="result_button">Ergebnisse</string>
+    <string name="status">Status automatische Messung</string>
+    
+    <!-- Words to Display -->
+    <string name="statistics">Statistiken</string>
+    <string name="console">Meldungen</string>
+    <string name="measurements">Messungen</string>
+    <string name="last_measurement">Letzte Messung</string>
+    <string name="useddata">Datenverbrauch</string>
+    <string name="period">Zeitraum</string>
+    <string name="execute">Ausführen der Methode</string>
+
+    <!-- Information Messages -->
+    <string name="noconnect">Keine Netzwerkverbindung verfügbar.</string>
+   	<string name="sniffer_stopped">C-Sniffer beendet.</string>
+   	<string name="sniffer_restart">C-Sniffer neu gestartet.</string>
+   	<string name="noSavedData">Keine gespeicherten Daten vorhanden.</string>
+   	<string name="automaticMeasurementEvenStarted">Automatische Messung wurde schon gestartet.</string>
+   	<string name="automaticMeasurementOn">Automatische Messung gestartet.</string>
+   	<string name="automaticMeasurementOff">Automatische Messung beendet.</string>
+    
+   	<!-- Error/Problem Messages -->
+   	<string name="parseex">Fehler beim Parsen der gespeicherten Dateien.</string>
+   	<string name="readex">Fehler beim Lesen der gespeicherten Dateien.</string>
+   	<string name="snifferex">Fehler beim Starten des Sniffers.</string>
+   	
+    <string name="socketex">SocketException: Keine Verbindung zum Server verfügbar.</string>
+    <string name="sockettimeoutex">SocketTimeoutException: Server antwortet nicht.</string>
+    <string name="unknownhostex">UnknowHostException: Client kann die Verbindung zum Server nicht aufbauen.</string>
+    <string name="protocolex">ProtocolException: Fehler bei verwendetem Protokoll.</string>
+    <string name="ioex">IOException: Genereller Eingabe-/Ausgabefehler.</string>
+    
+    <!-- Wifi-Settings Dialog -->
+    <string name="wifiDialog_title">Wifi Einstellungen</string>
+    <string name="wifiDialog_message">Kein WLAN aktiv. Messungen nur im WLAN ausführbar. Einstellungen ändern?</string>
+    
+	<!-- Options -->
+	<string name="general">Allgemein</string>
+	<string name="data">Daten</string>
+	<string name="privacy">Privatsphäre</string>
+	
+	<string name="wifi">Wifi</string>
+	<string name="wifi_key">wifi</string>
+	<bool name="wifi_default">true</bool>
+	<string name="wifi_desc">Nur Messungen im WLAN ausführen</string>
+	
+	<string name="list_data">Datenaufkommen</string>
+	<string name="list_data_key">list_data</string>
+	<string-array name="list_data_listentries">
+	    <item>sehr wenig (1 Messung pro Verfahren)</item>
+		<item>wenig (3 Messungen pro Verfahren)</item>
+		<item>mittel (4 Messungen pro Verfahren)</item>
+		<item>komplett (5 Messungen pro Verfahren)</item>
+	</string-array>
+	<string-array name="list_data_listvalues">
+		<item>1</item>
+		<item>3</item>
+		<item>4</item>
+		<item>5</item>
+	</string-array>
+	
+	<string name="number">Messungen</string>
+	<string name="number_key">number</string>
+	<integer name="number_default">24</integer>
+	<string name="number_desc">Anzahl der Messungen pro Tag</string>
+	
+	<string name="privacy_gps">GPS-Daten</string>
+	<string name="privacy_gps_key">gps</string>
+	<bool   name="privacy_gps_default">false</bool>
+	<string name="privacy_gps_desc">Nur GPS-Daten vom Netzzugang verwenden</string>
+	
+	<string name="privacy_time">Uhrzeit</string>
+	<string name="privacy_time_key">time</string>
+	<bool   name="privacy_time_default">false</bool>
+	<string name="privacy_time_desc">Uhrzeit auf volle Stunde runden</string>
+	
+	<string name="privacy_provider">Provider</string>
+	<string name="privacy_provider_key">provider</string>
+	<bool   name="privacy_provider_default">false</bool>
+	<string name="privacy_provider_desc">Verwendeten Provider nicht ermitteln</string>
+	
+	<string name="info">Info</string>
+	<string name="info_key">info</string>
+	<string name="info_desc">Testapp Version 0.8</string>
+	
+	<!-- ...................................................................................................... -->
+	<!-- Development -->
+	<string name="methods">Methoden</string>
+	
+	<string name="dev_server_ip">Server-IP:</string>
+	<string name="dev_server_ip_desc">IP des Servers</string>
+	<string name="dev_server_ip_key">serverip</string>
+	<string name="dev_server_ip_default">132.252.208.103</string>
+	
+	<string name="packetpair">PacketPair</string>
+	<string name="packetpair_key">packetpair</string>
+	<bool name="packetpair_default">true</bool>
+	
+	<string name="packettrain">PacketTrain</string>
+	<string name="packettrain_key">packettrain</string>
+	<bool name="packettrain_default">false</bool>
+	
+	<string name="gping">GPing</string>
+	<string name="gping_key">gping</string>
+	<bool name="gping_default">false</bool>
+	
+	<string name="download">Download</string>
+	<string name="download_key">download</string>
+	<bool name="download_default">false</bool>
+	
+	<string name="rtt">RTT (Round Trip Time)</string>
+	<string name="rtt_key">rtt</string>
+	<bool name="rtt_default">false</bool>
+	
+	<string name="packets">Pakete anzeigen</string>
+	<string name="packets_key">packets</string>
+	<string name="packets_desc">Vom Sniffer erfasste Pakete auf Konsole anzeigen</string>
+	<bool name="packets_default">true</bool>
+	
+</resources>

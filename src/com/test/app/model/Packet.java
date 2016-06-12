@@ -1,6 +1,5 @@
 package com.test.app.model;
 
-
 public class Packet
 {
 	private String source, destination, timestampString;

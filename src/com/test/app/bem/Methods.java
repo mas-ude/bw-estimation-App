@@ -127,11 +127,46 @@ public class Methods
 		return rttBW;
 	}
 
+	public double updatedRTT(int method, BufferedReader in, BufferedWriter out)
+			throws IOException
+	{
+		long start = 0;
+		long end = 0;
+		int bytes = 0;
+		if (method == DataModel.RTT)
+		{
+			bytes = 256000;
+			out.write("RTT\n");
+			out.flush();
+		} else if (method == DataModel.DOWNLOAD)
+		{
+			bytes = 10240000;
+			out.write("Download\n");
+			out.flush();
+		} else
+		{
+			return 0;
+		}
+
+		String thisLine = "";
+		start = System.nanoTime();
+		while ((thisLine = in.readLine()) != null)
+		{
+			if (thisLine.equals("End"))
+			{
+				end = System.nanoTime();
+				break;
+			}
+		}
+		double rttBW = bytes / ((end - start) / 1000000000.0) / 1000;
+		return rttBW;
+	}
+
 	/***************************************************************************
 	 * Packet Pair
 	 **************************************************************************/
-	public double packetPair(BufferedReader in, BufferedWriter out)
-			throws IOException
+	public double packetPair(BufferedReader in, BufferedWriter out,
+			DataModel model) throws IOException
 	{
 		double[] bandwidths = new double[messageLengths.length];
 		for (int t = 0; t < messageLengths.length; t++)
@@ -141,20 +176,23 @@ public class Methods
 			this.message = new String(a);
 			this.message += "\n";
 
-			this.outStart = System.nanoTime();
 			out.write(this.message);
 			out.flush();
+			this.outStart = System.nanoTime();
 			out.write(this.message);
 			out.flush();
 			this.outEnd = System.nanoTime();
 
-			this.inStart = System.nanoTime();
 			in.readLine();
+			this.inStart = System.nanoTime();
 			in.readLine();
 			this.inEnd = System.nanoTime();
 
 			this.deltaIn = (inEnd - inStart) / 1000000000.0;
 			this.deltaOut = (outEnd - outStart) / 1000000000.0;
+
+			model.informConsoleListeners("DeltaOut: " + deltaOut);
+			model.informConsoleListeners("DeltaIn: " + deltaIn);
 
 			double delta = Math.abs((deltaOut - deltaIn));
 			double ppBandwidth = packetSize / delta / 1000;

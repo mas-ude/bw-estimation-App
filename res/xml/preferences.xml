@@ -19,6 +19,14 @@
 			android:entries="@array/list_data_listentries"
 			android:defaultValue="3"
 			android:entryValues="@array/list_data_listvalues" />
+		
+
+	    <com.test.app.NumberPickerPreference
+	        android:key="@string/number_key"
+	        android:title="@string/number"
+	        android:summary="@string/number_desc"
+	        android:defaultValue="@integer/number_default" />
+
 	</PreferenceCategory>
 	
 	<PreferenceCategory

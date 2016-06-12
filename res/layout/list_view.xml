@@ -6,9 +6,92 @@
     android:layout_height="fill_parent" 
     android:background="@color/gray_blue">
     
-    <ExpandableListView
-                android:id="@+id/lvExp"
-                android:layout_height="match_parent"
-                android:layout_width="match_parent"/> 
+        <!-- Status -->
+	<LinearLayout
+		android:layout_width="match_parent"
+		android:layout_height="40dip"
+	    android:layout_gravity="center_horizontal"
+	    android:gravity="start"
+		android:orientation="horizontal"
+		android:background="@drawable/test2">
+		
+		<TextView
+			android:id="@+id/status"
+			android:layout_marginLeft="10dip"
+			android:layout_marginRight="10dip"
+			android:layout_gravity="center_horizontal"
+			android:layout_width="wrap_content"
+		    android:layout_height="wrap_content"
+		    android:paddingTop="10dip"
+		    android:paddingBottom="10dip"
+		    android:text="@string/status"
+		    android:textStyle="bold"
+		/>
+		
+		<TextView
+			android:id="@+id/status_icon"
+			android:layout_width="fill_parent"
+		    android:layout_height="wrap_content"
+			android:layout_marginLeft="10dip"
+			android:layout_marginRight="10dip"
+			android:layout_gravity="center_horizontal"
+		    android:paddingTop="10dip"
+		    android:paddingBottom="10dip"
+		    android:drawableRight="@drawable/not_ok"
+		    android:drawableEnd="@drawable/not_ok"
+		/>
+			
+	</LinearLayout>
+	
+	<!-- Dividing Line -->
+	<View
+	    android:layout_width="wrap_content"
+	    android:layout_height="1dp"
+	    android:background="@android:color/darker_gray"/>
     
+    <ExpandableListView
+        android:id="@+id/lvExp"
+        android:layout_width="fill_parent"
+	  	android:layout_height="0dip" 
+     	android:layout_weight="1"
+        android:layout_gravity="center_horizontal"
+        android:gravity="center"/>
+    
+    <!-- Dividing Line -->
+	<View
+	    android:layout_width="wrap_content"
+	    android:layout_height="1dp"
+	    android:background="@android:color/darker_gray"/>
+    
+    <!-- Buttons -->
+    <RelativeLayout
+		android:layout_width="fill_parent"
+	  	android:layout_height="wrap_content"
+        android:paddingLeft="10dip"
+        android:paddingRight="10dip"
+        android:layout_gravity="center_horizontal"
+        android:gravity="center"
+	  	android:orientation="horizontal"
+	  	android:background="@drawable/test2">
+	  	
+        <Button
+	  	    style="@style/ControlButtonTheme"
+		    android:id="@+id/overview_button"
+	    	android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:drawableTop="@drawable/overview"
+	        android:layout_alignParentLeft="true"
+	        android:layout_alignParentStart="true"
+	        android:text="@string/overview_button" />       
+
+	  	<Button
+	  	    style="@style/ControlButtonTheme"
+		    android:id="@+id/result_button"
+	    	android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:drawableTop="@drawable/result"     
+	       	android:layout_alignParentRight="true"
+	        android:layout_alignParentEnd="true" 
+	        android:text="@string/result_button" />	
+	</RelativeLayout>
 </LinearLayout>
