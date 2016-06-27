@@ -18,6 +18,7 @@ void print_packet(unsigned char* , int);
 void flush_buffer();
 
 int sock_raw;
+int hasEtherHeader;
 char* serverAddress;
 struct sockaddr_in source, dest, saddr;
 struct timespec tv;
@@ -29,6 +30,7 @@ int main(int argc, char* argv[])
 {
 	// Overgiven Argument is the address for the Sniffer to get Packets from
 	serverAddress = argv[1];
+	hasEtherHeader = strtoul(argv[2], NULL, 0);
     unsigned char *buffer = (unsigned char *)malloc(65536); //Its Big!
 
     printf("Starting...\n");
@@ -71,10 +73,19 @@ int main(int argc, char* argv[])
 void ProcessPacket(unsigned char* buffer, int size)
 {
 	//Get the IP Header part of this packet , excluding the ethernet header
-	struct iphdr *iph = (struct iphdr*)(buffer + sizeof(struct ethhdr));
-
+    struct iphdr *ipwithHeader = (struct iphdr *)(buffer + sizeof(struct ethhdr));
+    struct iphdr *ipwithoutHeader = (struct iphdr *)(buffer);
+    struct iphdr *iph;
+	if(hasEtherHeader == 1)
+	{
+		iph = ipwithHeader;
+	} else if(hasEtherHeader == 0)
+	{
+		iph = ipwithoutHeader;
+	}
 	switch (iph->protocol) //Check the Protocol and do accordingly...
 	{
+		// print_packet(buffer , size);
         case 1:  //ICMP Protocol
             //PrintIcmpPacket(Buffer,Size);
             break;
@@ -88,18 +99,29 @@ void ProcessPacket(unsigned char* buffer, int size)
             break;
 
         case 17: //UDP Protocol
-            // print_udp_packet(buffer , size);
+            // print_packet(buffer , size);
             break;
 
         default: //Some Other Protocol like ARP etc.
-            break;
+        	printf("Protocol: %d\n", iph->protocol);
+        	flush_buffer();
+        	break;
     }
 }
 
 // Method to print relevant information of the Packet
 void print_packet(unsigned char* Buffer, int Size)
 {
-    struct iphdr *iph = (struct iphdr *)(Buffer  + sizeof(struct ethhdr) );
+    struct iphdr *ipwithHeader = (struct iphdr *)(Buffer + sizeof(struct ethhdr));
+    struct iphdr *ipwithoutHeader = (struct iphdr *)(Buffer);
+    struct iphdr *iph;
+	if(hasEtherHeader == 1)
+	{
+		iph = ipwithHeader;
+	} else if(hasEtherHeader == 0)
+	{
+		iph = ipwithoutHeader;
+	}
 
     // Get Source-IP and Destination-IP
     memset(&source, 0, sizeof(source));
@@ -117,7 +139,7 @@ void print_packet(unsigned char* Buffer, int Size)
     strcpy(s, temp);
 
     // Check Constraints for the Packets
-    if((strcmp(d, serverAddress) == 0 || strcmp(s, serverAddress) == 0) && Size >= 100)
+    if((strcmp(d, serverAddress) == 0 || strcmp(s, serverAddress) == 0) && Size >= 106)
         {
     		// Get Timestamp of last Packet
         	ioctl(sock_raw, SIOCGSTAMPNS, &tv);
