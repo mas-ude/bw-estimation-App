@@ -70,6 +70,8 @@ public class MainActivity extends Activity implements OnClickListener,
 		sharedPrefs.edit().putBoolean("Root", false).apply();
 		// Set Value to show that App is active (important for Service)
 		sharedPrefs.edit().putBoolean("Active", true).apply();
+		// Set Value to show that new measurement was made
+		sharedPrefs.edit().putBoolean("Measurement", false).apply();
 
 		LocalBroadcastManager.getInstance(this)
 				.registerReceiver(mMessageReceiver,
@@ -88,9 +90,9 @@ public class MainActivity extends Activity implements OnClickListener,
 		AlarmManager manager = (AlarmManager) this
 				.getSystemService(Context.ALARM_SERVICE);
 
-		// manager.setRepeating(AlarmManager.RTC_WAKEUP,
-		// System.currentTimeMillis(), AlarmManager.INTERVAL_HOUR,
-		// pendingIntent);
+		manager.setRepeating(AlarmManager.RTC_WAKEUP,
+				System.currentTimeMillis(), AlarmManager.INTERVAL_HOUR,
+				pendingIntent);
 
 		// Get TextViews
 		console = (TextView) findViewById(R.id.console);
@@ -206,17 +208,31 @@ public class MainActivity extends Activity implements OnClickListener,
 	}
 
 	@Override
+	protected void onResume()
+	{
+		super.onResume();
+		// Set Value to show that App is active (important for
+		// Service)
+		sharedPrefs.edit().putBoolean("Active", true).apply();
+	}
+
+	@Override
 	protected void onStop()
 	{
 		super.onStop();
 
-		// Save Informations to File
-		try
+		// Save only if new Data is available
+		if (sharedPrefs.getBoolean("Measurement", false))
 		{
-			model.saveData();
-		} catch (IOException e)
-		{
-			e.printStackTrace();
+			// Save Informations to File
+			try
+			{
+				model.saveData();
+				sharedPrefs.edit().putBoolean("Measurement", false).apply();
+			} catch (IOException e)
+			{
+				e.printStackTrace();
+			}
 		}
 
 		// Set Value to show that App isn't active anymore (important for
@@ -267,6 +283,7 @@ public class MainActivity extends Activity implements OnClickListener,
 		if (v.getId() == R.id.start_button)
 		{
 			intent.putExtra("Results", model.getResults());
+			intent.putExtra("DailyResults", model.getDailyResults());
 			startService(intent);
 
 			// Reset Button
@@ -430,6 +447,8 @@ public class MainActivity extends Activity implements OnClickListener,
 					// Update Measurement Period
 					period.setText(getResources().getString(R.string.period)
 							+ "\n-\n-");
+					// Update last Measurement View
+					information.setText("");
 				}
 
 			}
@@ -508,9 +527,13 @@ public class MainActivity extends Activity implements OnClickListener,
 				@SuppressWarnings("unchecked")
 				ArrayList<Results> results = (ArrayList<Results>) intent
 						.getSerializableExtra(DataModel.INFORMATION);
+				@SuppressWarnings("unchecked")
+				ArrayList<Results> dailyResults = (ArrayList<Results>) intent
+						.getSerializableExtra(DataModel.ADDITIONALINFO);
 
 				// Set Results to Model
 				model.setResults(results);
+				model.setDailyResults(dailyResults);
 
 				// Inform Views
 				model.informMeasurementListeners();
@@ -519,7 +542,18 @@ public class MainActivity extends Activity implements OnClickListener,
 			{
 				String message = intent.getStringExtra(DataModel.INFORMATION);
 
-				model.informConsoleListeners(message);
+				// If Data saved to Server clear Data in Model
+				if (message.equals(DataModel.DATASAVED))
+				{
+					Toast.makeText(model.getContext(), "Data has been saved",
+							Toast.LENGTH_SHORT).show();
+					model.informMeasurementListeners();
+				}
+				// Display Information on Screen
+				else
+				{
+					model.informConsoleListeners(message);
+				}
 			} else if (command.equals(DataModel.INITPROGRESS))
 			{
 				if (progDailog != null)

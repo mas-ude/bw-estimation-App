@@ -7,7 +7,7 @@ public class Results implements Serializable
 {
 	private static final long serialVersionUID = 1L;
 	private ArrayList<Bandwidths> objects;
-	private String date;
+	private String date, networkType;
 	private boolean wifi, mobile;
 	private int cid, lac;
 	private String cCode, mcc, mnc, provider;
@@ -23,6 +23,7 @@ public class Results implements Serializable
 
 		this.cid = 0;
 		this.lac = 0;
+		this.networkType = "";
 		this.cCode = "";
 		this.mcc = "";
 		this.mnc = "";
@@ -95,6 +96,16 @@ public class Results implements Serializable
 	public void setLac(int lac)
 	{
 		this.lac = lac;
+	}
+
+	public String getNetworkType()
+	{
+		return networkType;
+	}
+
+	public void setNetworkType(String networkType)
+	{
+		this.networkType = networkType;
 	}
 
 	public String getcCode()

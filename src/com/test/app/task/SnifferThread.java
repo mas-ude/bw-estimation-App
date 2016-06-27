@@ -5,6 +5,10 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+
 import com.test.app.R;
 import com.test.app.model.DataModel;
 
@@ -22,14 +26,28 @@ public class SnifferThread extends Thread
 	@Override
 	public void run()
 	{
+		ConnectivityManager connManager = (ConnectivityManager) model
+				.getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
+
+		NetworkInfo wifi = connManager
+				.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+		int hasEtherHeader = 0;
+		if (wifi.isConnected())
+		{
+			hasEtherHeader = 1;
+		} else
+		{
+			hasEtherHeader = 0;
+		}
 
 		final String setRights = "chmod 777 /data/data/com.test.app/cache/sniffer";
+		final String arguments = model.getSharedPrefs().getString(
+				model.getContext().getString(R.string.dev_server_ip_key),
+				model.getContext().getString(R.string.dev_server_ip_default))
+				+ " " + hasEtherHeader;
 		final String startSniffer = "/data/data/com.test.app/cache/./sniffer "
-				+ model.getSharedPrefs().getString(
-						model.getContext()
-								.getString(R.string.dev_server_ip_key),
-						model.getContext().getString(
-								R.string.dev_server_ip_default));
+				+ arguments;
 
 		final DataOutputStream os = new DataOutputStream(
 				process.getOutputStream());

@@ -58,13 +58,16 @@ public class DataModel
 	public final static String RESULT = "result";
 	public final static String MESSAGE = "message";
 	public final static String INFORMATION = "information";
+	public final static String ADDITIONALINFO = "addinfo";
 	public final static String INITPROGRESS = "initprogress";
 	public final static String PROGRESS = "progress";
 	public final static String DISMISSPROGRESS = "dismissprogress";
 	public final static String DIALOG = "dialog";
 	public final static String WIFIDIALOG = "wifidialog";
+	public final static String DATASAVED = "datasaved";
 
 	private ArrayList<Results> results;
+	private ArrayList<Results> dailyResults;
 	private ArrayList<DataModelListener> listeners;
 	private ArrayList<Packet> packets;
 	private SharedPreferences sharedPrefs;
@@ -74,6 +77,7 @@ public class DataModel
 	public DataModel(SharedPreferences sharedPrefs, Context context)
 	{
 		this.results = new ArrayList<Results>();
+		this.dailyResults = new ArrayList<Results>();
 		this.listeners = new ArrayList<DataModelListener>();
 		this.packets = new ArrayList<Packet>();
 		this.sharedPrefs = sharedPrefs;
@@ -121,9 +125,21 @@ public class DataModel
 		return results;
 	}
 
+	public ArrayList<Results> getDailyResults()
+	{
+		return dailyResults;
+	}
+
+	public void setDailyResults(ArrayList<Results> dailyResults)
+	{
+		this.dailyResults = dailyResults;
+	}
+
 	public void addResultObject(Results result)
 	{
 		this.results.add(result);
+		// Add to Daily Results
+		this.dailyResults.add(result);
 	}
 
 	public int getNumberOfMeasurements()
@@ -418,6 +434,38 @@ public class DataModel
 		return map;
 	}
 
+	public static String decodenetworktype(int networkType)
+	{
+		switch (networkType)
+		{
+		case (TelephonyManager.NETWORK_TYPE_CDMA):
+			return "CDMA";
+		case (TelephonyManager.NETWORK_TYPE_EDGE):
+			return "EDGE";
+		case (TelephonyManager.NETWORK_TYPE_GPRS):
+			return "GPRS";
+		case (TelephonyManager.NETWORK_TYPE_HSPA):
+			return "HSPA";
+		case (TelephonyManager.NETWORK_TYPE_HSDPA):
+			return "HSDPA";
+		case (TelephonyManager.NETWORK_TYPE_HSPAP):
+			return "HSPA+";
+		case (TelephonyManager.NETWORK_TYPE_HSUPA):
+			return "HSUPA";
+		case (TelephonyManager.NETWORK_TYPE_LTE):
+			return "LTE";
+		case (TelephonyManager.NETWORK_TYPE_UMTS):
+			return "UMTS";
+		case (TelephonyManager.NETWORK_TYPE_EVDO_0):
+		case (TelephonyManager.NETWORK_TYPE_EVDO_A):
+		case (TelephonyManager.NETWORK_TYPE_EVDO_B):
+			return "EVDO";
+		case (TelephonyManager.NETWORK_TYPE_UNKNOWN):
+		default:
+			return "unknown";
+		}
+	}
+
 	public Results getDeviceInformations(ConnectivityManager connManager,
 			NetworkInfo wifi, NetworkInfo mobile)
 	{
@@ -435,6 +483,10 @@ public class DataModel
 				.getSystemService(Context.TELEPHONY_SERVICE);
 		String provider = telephonyManager.getNetworkOperatorName();
 		resultObject.setProvider(provider);
+
+		// Get used network type
+		int networkType = telephonyManager.getNetworkType();
+		resultObject.setNetworkType(DataModel.decodenetworktype(networkType));
 
 		// Get Country Code
 		String cCode = Locale.getDefault().getCountry();
@@ -505,16 +557,48 @@ public class DataModel
 		return resultObject;
 	}
 
-	public void saveData() throws FileNotFoundException, IOException
+	public void saveData() throws FileNotFoundException,
+			IllegalArgumentException, IOException
 	{
 		FileOutputStream fos = this.context.openFileOutput(DataModel.SAVEFILE,
 				Context.MODE_PRIVATE);
 
 		Gson gson = new Gson();
 
+		// Save all Results
 		fos.write(gson.toJson(this.results).getBytes());
 		fos.flush();
+
+		// Save Daily Results
+		fos = this.context.openFileOutput(DataModel.SAVEFILEDAY,
+				Context.MODE_PRIVATE);
+
+		fos.write(gson.toJson(this.dailyResults).getBytes());
+		fos.flush();
+
 		fos.close();
+	}
+
+	public void loadDailyData() throws FileNotFoundException, IOException
+	{
+		FileInputStream fis;
+
+		fis = context.openFileInput(DataModel.SAVEFILEDAY);
+
+		Reader reader = new InputStreamReader(fis);
+
+		Gson gson = new Gson();
+
+		Type collectionType = new TypeToken<ArrayList<Results>>()
+		{
+		}.getType();
+
+		ArrayList<Results> results = gson.fromJson(reader, collectionType);
+		if (results != null)
+		{
+			this.dailyResults = results;
+		}
+		fis.close();
 	}
 
 	public void loadData() throws FileNotFoundException, IOException
@@ -541,8 +625,10 @@ public class DataModel
 
 	public void deleteSendedData() throws FileNotFoundException, IOException
 	{
-		FileOutputStream fos = this.context.openFileOutput(DataModel.SAVEFILE,
-				Context.MODE_PRIVATE);
+		this.dailyResults.clear();
+
+		FileOutputStream fos = this.context.openFileOutput(
+				DataModel.SAVEFILEDAY, Context.MODE_PRIVATE);
 
 		fos.write("".getBytes());
 		fos.flush();
@@ -556,6 +642,7 @@ public class DataModel
 		// Extra data
 		intent.putExtra(DataModel.COMMAND, DataModel.RESULT);
 		intent.putExtra(DataModel.INFORMATION, this.results);
+		intent.putExtra(DataModel.ADDITIONALINFO, this.dailyResults);
 
 		LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
 	}

@@ -162,6 +162,9 @@ public class MeasurementTask extends Thread
 
 			// Inform Views that Measurement is over
 			model.sendResultstoBroadcast();
+			// Set Value to show that a new Measurement is available
+			model.getSharedPrefs().edit().putBoolean("Measurement", true)
+					.apply();
 		} catch (SocketException e)
 		{
 			model.sendMessagestoBroadcast(DataModel.MESSAGE, model.getContext()
