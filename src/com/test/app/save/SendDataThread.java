@@ -50,19 +50,28 @@ public class SendDataThread extends Thread
 			// Send Data in JSON-Format
 			Gson gson = new Gson();
 
-			out.write(gson.toJson(this.model.getResults()));
+			out.write(gson.toJson(this.model.getDailyResults()));
 			out.flush();
 			out.write("\nEnd\n");
 			out.flush();
 
 			// Wait for answer
-
-			// Delete sended Data
-			this.model.deleteSendedData();
+			String response = in.readLine();
+			// React on answer
+			if (response.equals("saved"))
+			{
+				// Delete sended Data
+				this.model.sendMessagestoBroadcast(DataModel.MESSAGE,
+						DataModel.DATASAVED);
+				this.model.deleteSendedData();
+			} else
+			{
+				// Problem with saving the Data on Serverside
+			}
 
 		} catch (IOException e)
 		{
-			e.printStackTrace();
+
 		} finally
 		{
 			// Service doesn't stay in memory so stop it immediately after
