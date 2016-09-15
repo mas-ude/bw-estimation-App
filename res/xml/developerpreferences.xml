@@ -41,6 +41,14 @@
 	    	android:key="@string/download_key"
 		    android:title="@string/download"
 	    	android:defaultValue="@bool/download_default"/>
+	    <CheckBoxPreference
+	    	android:key="@string/youtube_rtt_key"
+		    android:title="@string/youtube_rtt"
+	    	android:defaultValue="@bool/youtube_rtt_default"/>
+	    <CheckBoxPreference
+	    	android:key="@string/youtube_download_key"
+		    android:title="@string/youtube_download"
+	    	android:defaultValue="@bool/youtube_download_default"/>
 	    
 
     </PreferenceCategory>

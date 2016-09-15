@@ -15,6 +15,8 @@
     <string name="overview_button">Overview</string>
     <string name="result_button">Results</string>
     <string name="status">Status automatic Measurement</string>
+    <integer name="port">2600</integer>
+    <integer name="timeout">30000</integer>
     
     <!-- Words to Display -->
     <string name="statistics">Statistics</string>
@@ -65,12 +67,14 @@
 		<item>small (3 Measurements per Method)</item>
 		<item>medium (4 Measurements per Method)</item>
 		<item>complete (5 Measurements per Method)</item>
+		<item>Test (10 Measurements per Method)</item>
 	</string-array>
 	<string-array name="list_data_listvalues">
 		<item>1</item>
 		<item>3</item>
 		<item>4</item>
 		<item>5</item>
+		<item>10</item>
 	</string-array>
 	
 	<string name="number">Measurements</string>
@@ -126,9 +130,17 @@
 	<string name="rtt_key">rtt</string>
 	<bool name="rtt_default">false</bool>
 	
+	<string name="youtube_rtt">RTT Youtube</string>
+	<string name="youtube_rtt_key">rttyoutube</string>
+	<bool name="youtube_rtt_default">false</bool>
+	
+	<string name="youtube_download">Download Youtube</string>
+	<string name="youtube_download_key">downloadyoutube</string>
+	<bool name="youtube_download_default">false</bool>
+	
 	<string name="packets">Show Packets</string>
 	<string name="packets_key">packets</string>
 	<string name="packets_desc">Display captured Packets from the Sniffer on console</string>
-	<bool name="packets_default">true</bool>
+	<bool name="packets_default">false</bool>
 	
 </resources>
