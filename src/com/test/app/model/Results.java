@@ -12,14 +12,14 @@ public class Results implements Serializable
 	private int cid, lac;
 	private String cCode, mcc, mnc, provider;
 	private double latitude, longitude;
-	private long usedData;
+	private float measurementTime;
 
 	public Results(boolean wifi, boolean mobile, String date)
 	{
 		this.wifi = wifi;
 		this.mobile = mobile;
 		this.date = date;
-		objects = new ArrayList<Bandwidths>(10);
+		objects = new ArrayList<Bandwidths>(5);
 
 		this.cid = 0;
 		this.lac = 0;
@@ -30,7 +30,7 @@ public class Results implements Serializable
 		this.provider = "";
 		this.latitude = 0;
 		this.longitude = 0;
-		this.usedData = 0;
+		this.measurementTime = 0;
 	}
 
 	public void addObject(Bandwidths object)
@@ -168,19 +168,31 @@ public class Results implements Serializable
 		this.longitude = longitude;
 	}
 
-	public long getUsedData()
+	public float getMeasurementTime()
 	{
+		return measurementTime;
+	}
+
+	public void setMeasurementTime(float measurementTime)
+	{
+		this.measurementTime = measurementTime;
+	}
+
+	public double getUsedData()
+	{
+		double usedData = 0;
+		for (int i = 0; i < this.objects.size(); i++)
+		{
+			// Don't add used Data from the Measurements of the Sniffer because
+			// these Data is already in the other Methods, because it is only
+			// one Measurement for the Method with and without Sniffer
+			if (this.objects.get(i).getMethod() != DataModel.PP_SNIFFER
+					&& this.objects.get(i).getMethod() != DataModel.GPING_SNIFFER)
+			{
+				usedData = usedData + objects.get(i).getUsedData();
+			}
+		}
 		return usedData;
-	}
-
-	public void setUsedData(long usedData)
-	{
-		this.usedData = usedData;
-	}
-
-	public void addUsedData(long data)
-	{
-		this.usedData = this.usedData + data;
 	}
 
 	public ArrayList<String> getDisplayInformation()
@@ -195,7 +207,9 @@ public class Results implements Serializable
 		result.add("LAC: " + this.lac);
 		result.add("CID: " + this.cid);
 		result.add("GPS: " + this.latitude + "|" + this.longitude);
-		result.add("Details Messergebnisse");
+		result.add("Used Data: " + this.getUsedData() / 1000 + " KB");
+		result.add("Time: " + this.measurementTime + " s");
+		result.add("Details");
 
 		return result;
 	}

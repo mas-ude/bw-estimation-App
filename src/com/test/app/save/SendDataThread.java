@@ -36,7 +36,7 @@ public class SendDataThread extends Thread
 			socket = new Socket(serverAddress, 2600);
 
 			// Set Timeout if Server is not able to response
-			socket.setSoTimeout(10000);
+			socket.setSoTimeout(20000);
 
 			BufferedReader in = new BufferedReader(new InputStreamReader(
 					socket.getInputStream()));
@@ -50,7 +50,7 @@ public class SendDataThread extends Thread
 			// Send Data in JSON-Format
 			Gson gson = new Gson();
 
-			out.write(gson.toJson(this.model.getDailyResults()));
+			out.write(gson.toJson(this.model.getResults()));
 			out.flush();
 			out.write("\nEnd\n");
 			out.flush();

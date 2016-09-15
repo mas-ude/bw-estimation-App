@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.test.app.R;
+import com.test.app.bem.RTT;
 import com.test.app.model.Bandwidths;
 import com.test.app.model.DataModel;
 import com.test.app.model.Results;
@@ -24,12 +25,15 @@ public class MeasurementTask extends Thread
 	private Results result;
 	private MyService service;
 	private Process process;
+	private int[] messageLengths;
 
 	public MeasurementTask(DataModel model, Results result, MyService service)
 	{
 		this.model = model;
 		this.service = service;
 		this.result = result;
+
+		this.messageLengths = new int[] { 1400 };
 
 		// Start Sniffer if Root Access is granted
 		if (model.getSharedPrefs().getBoolean("Root", false))
@@ -56,6 +60,8 @@ public class MeasurementTask extends Thread
 		// Get Settings from SharedPreferences
 		HashMap<Integer, Integer> map = model.getUserSettingsForMeasurement();
 
+		long end = 0, start = System.currentTimeMillis();
+
 		Bandwidths saveObject = null;
 		ArrayList<Double> bandwidths = new ArrayList<Double>(5);
 		Socket socket = null;
@@ -66,12 +72,15 @@ public class MeasurementTask extends Thread
 		try
 		{
 
-			// TODO: GET VALUES FOR PORT AND TIMEOUT FROM MODEL (SAVE THIS
-			// IN MODEL BEFORE)
+			int port = model.getSharedPrefs().getInt(
+					model.getContext().getString(R.integer.port), 2600);
 
-			socket = new Socket(serverAddress, 2600);
+			int timeout = model.getSharedPrefs().getInt(
+					model.getContext().getString(R.integer.timeout), 30000);
+
+			socket = new Socket(serverAddress, port);
 			// Set Timeout if Server is not able to response
-			socket.setSoTimeout(10000);
+			socket.setSoTimeout(timeout);
 
 			// Get Maximum Buffer Size to set it again
 			int bufferSize = socket.getReceiveBufferSize();
@@ -84,6 +93,12 @@ public class MeasurementTask extends Thread
 
 			// Variable to update Progress
 			int count = 1;
+			// To Save returned Values
+			Double[] arr = new Double[2];
+			// To Calculate Measurement Time
+			long startMethod = 0, endMethod = 0;
+			double usedData = 0;
+
 			// Execute Methods and Save Data
 			for (Integer method : map.keySet())
 			{
@@ -92,6 +107,7 @@ public class MeasurementTask extends Thread
 						DataModel.getMethodName(method));
 				for (int i = 0; i < map.get(method); i++)
 				{
+					startMethod = System.currentTimeMillis();
 					if (method == DataModel.PACKETPAIR)
 					{
 						model.sendMessagestoBroadcast(DataModel.MESSAGE,
@@ -99,65 +115,113 @@ public class MeasurementTask extends Thread
 						// PP get better results if BufferSize is set to minimum
 						socket.setSendBufferSize(1);
 						socket.setReceiveBufferSize(1);
-						bandwidths.add(model.getMethods().packetPair(in, out,
-								model));
+						for (int t = 0; t < messageLengths.length; t++)
+						{
+							arr = model.getMethods().packetPair(in, out,
+									messageLengths[t], model);
+							bandwidths.add(arr[0]);
+							usedData = usedData + arr[1];
+						}
 						socket.setSendBufferSize(bufferSize);
 						socket.setReceiveBufferSize(bufferSize);
 					} else if (method == DataModel.PACKETTRAIN)
 					{
 						model.sendMessagestoBroadcast(DataModel.MESSAGE,
 								"Packet Train Messung gestartet.");
-						bandwidths.add(model.getMethods().packetTrain(in, out));
+						arr = model.getMethods().packetTrain(in, out);
+						bandwidths.add(arr[0]);
+						usedData = usedData + arr[1];
 					} else if (method == DataModel.GPING)
 					{
 						model.sendMessagestoBroadcast(DataModel.MESSAGE,
 								"GPing Messung gestartet.");
-						bandwidths.add(model.getMethods().gPing(in, out));
+						arr = model.getMethods().gPing(in, out);
+						bandwidths.add(arr[0]);
+						usedData = usedData + arr[1];
 					} else if (method == DataModel.RTT)
 					{
 						model.sendMessagestoBroadcast(DataModel.MESSAGE,
 								"RTT Messung gestartet.");
-						bandwidths.add(model.getMethods().updatedRTT(
-								DataModel.RTT, in, out));
+						arr = model.getMethods().updatedRTT(DataModel.RTT, in,
+								out);
+						bandwidths.add(arr[0]);
+						usedData = usedData + arr[1];
 					} else if (method == DataModel.DOWNLOAD)
 					{
 						model.sendMessagestoBroadcast(DataModel.MESSAGE,
 								"Download Messung gestartet.");
-						bandwidths.add(model.getMethods().updatedRTT(
-								DataModel.DOWNLOAD, in, out));
+						arr = model.getMethods().updatedRTT(DataModel.DOWNLOAD,
+								in, out);
+						bandwidths.add(arr[0]);
+						usedData = usedData + arr[1];
+					} else if (method == DataModel.RTT_YOUTUBE)
+					{
+						model.sendMessagestoBroadcast(DataModel.MESSAGE,
+								"RTT zu Youtube gestartet.");
+						RTT rtt = new RTT("https://www.youtube.com");
+						arr = rtt.calculateRTT();
+						bandwidths.add(arr[0]);
+						usedData = usedData + arr[1];
+					} else if (method == DataModel.DOWNLOAD_YOUTUBE)
+					{
+						model.sendMessagestoBroadcast(DataModel.MESSAGE,
+								"Download von Youtube gestartet.");
 					}
+
+					endMethod = System.currentTimeMillis();
 				}
-				model.sendMessagestoBroadcast(DataModel.MESSAGE,
-						"Werte für Methode " + method + " abgespeichert!");
-				// model.informConsoleListeners();
-				saveObject = new Bandwidths(method, new ArrayList<Double>(
-						bandwidths));
-				// Clear Array because it is used again
-				bandwidths.clear();
-				// Calculate Bandwidth from Sniffer-Informations
-				if (method == DataModel.PACKETPAIR || method == DataModel.GPING)
+
+				if (!bandwidths.isEmpty())
 				{
-					// Short Interruption to get all Inputs from the Sniffer
-					Thread.sleep(200);
-					Bandwidths object = model.calculateTimefromPackets(method);
+					saveObject = new Bandwidths(method, new ArrayList<Double>(
+							bandwidths), usedData);
+					// Set used Measurement Time
+					saveObject
+							.setMeasurementTime((endMethod - startMethod) / 1000.0F);
+				}
+
+				// Calculate Bandwidth from Sniffer-Informations (only if Root
+				// Access is granted)
+				if ((method == DataModel.PACKETPAIR || method == DataModel.GPING)
+						&& model.getSharedPrefs().getBoolean("Root", false))
+				{
+					Bandwidths object = model.calculateTimefromPackets(method,
+							usedData);
 					if (object != null)
 					{
+						// Set Measurement Time
+						object.setMeasurementTime((endMethod - startMethod) / 1000.0F);
+						// Add Object to Result
 						result.addObject(object);
 					}
 				}
+
+				// Clear Array and Variable usedData because it is used again
+				bandwidths.clear();
+				usedData = 0;
+
 				// Remove all Packets after Calculation or if another method is
 				// called
 				model.deletePackets();
-				result.addObject(saveObject);
+				if (saveObject != null)
+				{
+					result.addObject(saveObject);
+				}
 				count++;
 			}
 
-			model.addResultObject(result);
+			end = System.currentTimeMillis();
+			result.setMeasurementTime((end - start) / 1000.0F);
 
-			// Save Informations as JSON in File only if App is closed
-			if (!model.getSharedPrefs().getBoolean("Active", false))
+			if (!result.getObjects().isEmpty())
 			{
-				model.saveData();
+				model.addResultObject(result);
+				// Save Informations as JSON in File only if App is closed
+				if (!model.getSharedPrefs().getBoolean("Active", false))
+				{
+					model.sendMessagestoBroadcast(DataModel.MESSAGE, "Saved");
+					model.saveData();
+				}
 			}
 
 			// Inform Views that Measurement is over
@@ -189,9 +253,12 @@ public class MeasurementTask extends Thread
 		{
 			model.sendMessagestoBroadcast(DataModel.MESSAGE, model.getContext()
 					.getResources().getString(R.string.ioex));
+			model.sendMessagestoBroadcast(DataModel.MESSAGE, e.getMessage());
 			return;
-		} catch (InterruptedException e)
+		} catch (Exception e)
 		{
+			model.sendMessagestoBroadcast(DataModel.MESSAGE,
+					"Exception: " + e.getMessage());
 			return;
 		} finally
 		{
@@ -218,6 +285,7 @@ public class MeasurementTask extends Thread
 
 			}
 		}
-	}
 
+		return;
+	}
 }

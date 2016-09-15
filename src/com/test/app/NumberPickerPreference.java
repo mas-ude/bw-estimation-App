@@ -17,14 +17,64 @@ import android.widget.NumberPicker;
 public class NumberPickerPreference extends DialogPreference
 {
 
-	// allowed range
-	public static final int MAX_VALUE = 1440;
+	// allowed Values
+	public static final int DEFAULTVALUE = 24;
 	public static final int MIN_VALUE = 12;
+	public static final int MAX_VALUE = 1440;
+	public static final String[] NUMBERS = { "12", "15", "18", "20", "24",
+			"30", "40", "50", "60", "70", "80", "90", "100", "144", "288",
+			"480", "720", "1440" };
 	// enable or disable the 'circular behavior'
 	public static final boolean WRAP_SELECTOR_WHEEL = true;
 
 	private NumberPicker picker;
 	private int value;
+
+	// Method to get Values from the Number Picker index Position
+	public static int getValueOfPicker(int position)
+	{
+		switch (position)
+		{
+		case 0:
+			return 12;
+		case 1:
+			return 15;
+		case 2:
+			return 18;
+		case 3:
+			return 20;
+		case 4:
+			return 24;
+		case 5:
+			return 30;
+		case 6:
+			return 40;
+		case 7:
+			return 50;
+		case 8:
+			return 60;
+		case 9:
+			return 70;
+		case 10:
+			return 80;
+		case 11:
+			return 90;
+		case 12:
+			return 100;
+		case 13:
+			return 144;
+		case 14:
+			return 288;
+		case 15:
+			return 480;
+		case 16:
+			return 720;
+		case 17:
+			return 1440;
+		default:
+			return 24;
+		}
+	}
 
 	public NumberPickerPreference(Context context, AttributeSet attrs)
 	{
@@ -58,8 +108,9 @@ public class NumberPickerPreference extends DialogPreference
 	protected void onBindDialogView(View view)
 	{
 		super.onBindDialogView(view);
-		picker.setMinValue(MIN_VALUE);
-		picker.setMaxValue(MAX_VALUE);
+		picker.setMinValue(0);
+		picker.setMaxValue(NUMBERS.length - 1);
+		picker.setDisplayedValues(NUMBERS);
 		picker.setWrapSelectorWheel(WRAP_SELECTOR_WHEEL);
 		picker.setValue(getValue());
 	}
@@ -81,14 +132,14 @@ public class NumberPickerPreference extends DialogPreference
 	@Override
 	protected Object onGetDefaultValue(TypedArray a, int index)
 	{
-		return a.getInt(index, MIN_VALUE);
+		return a.getInt(index, DEFAULTVALUE);
 	}
 
 	@Override
 	protected void onSetInitialValue(boolean restorePersistedValue,
 			Object defaultValue)
 	{
-		setValue(restorePersistedValue ? getPersistedInt(MIN_VALUE)
+		setValue(restorePersistedValue ? getPersistedInt(DEFAULTVALUE)
 				: (Integer) defaultValue);
 	}
 

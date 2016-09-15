@@ -33,14 +33,14 @@ public class ServerService extends Service
 		// Load possible saved data into Model
 		try
 		{
-			model.loadDailyData();
+			model.loadData();
 		} catch (Exception e)
 		{
 
 		}
 
 		// Only send Data to Server if data is available
-		if (!model.getDailyResults().isEmpty())
+		if (!model.getResults().isEmpty())
 		{
 			// Start Thread
 			new SendDataThread(model, this).start();

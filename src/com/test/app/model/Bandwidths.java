@@ -9,12 +9,16 @@ public class Bandwidths implements Serializable
 	private static final long serialVersionUID = 1L;
 	private int method;
 	private ArrayList<Double> bandwidths;
+	private double usedData;
+	private float measurementTime;
 	private double avgBandwidth;
 
-	public Bandwidths(int method, ArrayList<Double> bandwidths)
+	public Bandwidths(int method, ArrayList<Double> bandwidths, double usedData)
 	{
 		this.method = method;
 		this.bandwidths = bandwidths;
+		this.usedData = usedData;
+		this.measurementTime = 0;
 		this.calculateAvgBandwidth();
 	}
 
@@ -64,6 +68,26 @@ public class Bandwidths implements Serializable
 		this.calculateAvgBandwidth();
 	}
 
+	public double getUsedData()
+	{
+		return usedData;
+	}
+
+	public void setUsedData(double usedData)
+	{
+		this.usedData = usedData;
+	}
+
+	public float getMeasurementTime()
+	{
+		return measurementTime;
+	}
+
+	public void setMeasurementTime(float measurementTime)
+	{
+		this.measurementTime = measurementTime;
+	}
+
 	public void calculateAvgBandwidth()
 	{
 		double avgBW = 0;
@@ -77,9 +101,11 @@ public class Bandwidths implements Serializable
 
 	public ArrayList<String> getDisplayInformation()
 	{
-		ArrayList<String> result = new ArrayList<String>(bandwidths.size() + 1);
+		ArrayList<String> result = new ArrayList<String>(bandwidths.size() + 3);
 
-		result.add("Standardabweichung: " + this.getStandardDeviation());
+		result.add("Time: " + this.measurementTime + " s");
+		result.add("Used Data: " + this.usedData / 1000 + " KB");
+		result.add("Standard Deviation: " + this.getStandardDeviation());
 		for (int i = 0; i < bandwidths.size(); i++)
 		{
 			result.add("" + bandwidths.get(i) + " KB/s");

@@ -127,7 +127,7 @@ public class Methods
 		return rttBW;
 	}
 
-	public double updatedRTT(int method, BufferedReader in, BufferedWriter out)
+	public Double[] updatedRTT(int method, BufferedReader in, BufferedWriter out)
 			throws IOException
 	{
 		long start = 0;
@@ -145,7 +145,8 @@ public class Methods
 			out.flush();
 		} else
 		{
-			return 0;
+			Double[] t = { 0.0, 0.0 };
+			return t;
 		}
 
 		String thisLine = "";
@@ -159,61 +160,55 @@ public class Methods
 			}
 		}
 		double rttBW = bytes / ((end - start) / 1000000000.0) / 1000;
-		return rttBW;
+		Double[] arr = { rttBW, (double) bytes };
+		return arr;
 	}
 
 	/***************************************************************************
 	 * Packet Pair
 	 **************************************************************************/
-	public double packetPair(BufferedReader in, BufferedWriter out,
-			DataModel model) throws IOException
+	public Double[] packetPair(BufferedReader in, BufferedWriter out,
+			int packetSize, DataModel model) throws IOException
 	{
-		double[] bandwidths = new double[messageLengths.length];
-		for (int t = 0; t < messageLengths.length; t++)
-		{
-			char[] a = new char[messageLengths[t]];
-			Arrays.fill(a, 'x');
-			this.message = new String(a);
-			this.message += "\n";
+		char[] a = new char[packetSize];
+		Arrays.fill(a, 'x');
+		this.message = new String(a);
+		this.message += "\n";
 
-			out.write(this.message);
-			out.flush();
-			this.outStart = System.nanoTime();
-			out.write(this.message);
-			out.flush();
-			this.outEnd = System.nanoTime();
+		out.write(this.message);
+		out.flush();
+		this.outStart = System.nanoTime();
+		out.write(this.message);
+		out.flush();
+		this.outEnd = System.nanoTime();
 
-			in.readLine();
-			this.inStart = System.nanoTime();
-			in.readLine();
-			this.inEnd = System.nanoTime();
+		in.readLine();
+		this.inStart = System.nanoTime();
+		in.readLine();
+		this.inEnd = System.nanoTime();
 
-			this.deltaIn = (inEnd - inStart) / 1000000000.0;
-			this.deltaOut = (outEnd - outStart) / 1000000000.0;
+		this.deltaIn = (inEnd - inStart) / 1000000000.0;
+		this.deltaOut = (outEnd - outStart) / 1000000000.0;
 
-			model.informConsoleListeners("DeltaOut: " + deltaOut);
-			model.informConsoleListeners("DeltaIn: " + deltaIn);
+		model.sendMessagestoBroadcast(DataModel.MESSAGE, "DeltaOut: "
+				+ deltaOut);
+		model.sendMessagestoBroadcast(DataModel.MESSAGE, "DeltaIn: " + deltaIn);
 
-			double delta = Math.abs((deltaOut - deltaIn));
-			double ppBandwidth = packetSize / delta / 1000;
-			bandwidths[t] = ppBandwidth;
-		}
-
-		double ppBandwidth = 0;
-		for (int t = 0; t < bandwidths.length; t++)
-		{
-			ppBandwidth = ppBandwidth + bandwidths[t];
-		}
-
+		double delta = Math.abs((deltaOut - deltaIn));
+		double ppBandwidth = packetSize / delta / 1000;
+		// 2 Packets back-to-back (2*2) * Message-Length + 4 * 54 (Packet
+		// Headers)
+		int bytes = 4 * packetSize + 4 * 54;
 		// DataObject data = new DataObject(DataModel.PACKETPAIR, ppBandwidth);
 		// model.addBandwidth(data);
-		return ppBandwidth;
+		Double[] arr = { ppBandwidth, (double) bytes };
+		return arr;
 	}
 
 	/***************************************************************************
 	 * GPing
 	 **************************************************************************/
-	public double gPing(BufferedReader in, BufferedWriter out)
+	public Double[] gPing(BufferedReader in, BufferedWriter out)
 			throws IOException
 	{
 		ArrayList<Double> smallRTTs = new ArrayList<Double>();
@@ -248,14 +243,18 @@ public class Methods
 				/ (Math.abs((Collections.min(largeRTTs) - Collections
 						.min(smallRTTs))) / 2) / 1000;
 
-		// model.addBandwidth(new DataObject(DataModel.GPING, gPingBandwidth));
-		return gPingBandwidth;
+		// GPingLoops * (2 small Packets + 2 large Packets + 4(2*2) * 54 (Packet
+		// Headers))
+		int bytes = this.gPingLoops
+				* (2 * smallPacketSize + 2 * largePacketSize + 4 * 54);
+		Double[] arr = { gPingBandwidth, (double) bytes };
+		return arr;
 	}
 
 	/***************************************************************************
 	 * Packet Train
 	 **************************************************************************/
-	public double packetTrain(BufferedReader in, BufferedWriter out)
+	public Double[] packetTrain(BufferedReader in, BufferedWriter out)
 			throws IOException
 	{
 		out.write("PacketTrain" + this.ptPackets + this.ptpacketLength + "\n");
@@ -273,6 +272,10 @@ public class Methods
 			for (int i = 0; i < this.ptPackets; i++)
 			{
 				message = in.readLine();
+				if (message == null)
+				{
+					continue;
+				}
 				if (message.length() > this.ptpacketLength)
 				{
 					double timestamp = Double.valueOf(message.substring(
@@ -315,7 +318,12 @@ public class Methods
 			}
 		}
 
-		return ptBandwidth;
+		// 65 Byte Message PacketTrain + Number of Packets in all
+		// PacketTrains + 63 Byte Message Bandwidth + ~74 Byte Response
+		int bytes = 65 + this.numberOfPackets * 1454 + 63 + 74;
+		Double[] arr = { ptBandwidth, (double) bytes };
+
+		return arr;
 	}
 
 	/***************************************************************************

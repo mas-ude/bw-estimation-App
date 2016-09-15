@@ -33,9 +33,6 @@ public class MyService extends Service
 		@SuppressWarnings("unchecked")
 		ArrayList<Results> results = (ArrayList<Results>) intent
 				.getSerializableExtra("Results");
-		@SuppressWarnings("unchecked")
-		ArrayList<Results> dailyResults = (ArrayList<Results>) intent
-				.getSerializableExtra("DailyResults");
 
 		// Get User Settings from Shared Preferences
 		SharedPreferences sharedPrefs = PreferenceManager
@@ -46,17 +43,12 @@ public class MyService extends Service
 		if (results != null)
 		{
 			model.setResults(results);
-			if (dailyResults != null)
-			{
-				model.setDailyResults(dailyResults);
-			}
 		} else
 		{
 			// Load possible saved data
 			try
 			{
 				model.loadData();
-				model.loadDailyData();
 			} catch (Exception e)
 			{
 

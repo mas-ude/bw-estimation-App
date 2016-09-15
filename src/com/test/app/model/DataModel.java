@@ -42,9 +42,10 @@ public class DataModel
 	public final static int TEST = 10;
 	public final static int PP_SNIFFER = 15;
 	public final static int GPING_SNIFFER = 16;
+	public final static int RTT_YOUTUBE = 20;
+	public final static int DOWNLOAD_YOUTUBE = 21;
 
 	public final static String SAVEFILE = "save";
-	public final static String SAVEFILEDAY = "saveday";
 	public final static String DATARTT = "512KB";
 	public final static String DATADOWNLOAD = "10MB";
 	public final static String PROTOCOL = "http://";
@@ -67,7 +68,6 @@ public class DataModel
 	public final static String DATASAVED = "datasaved";
 
 	private ArrayList<Results> results;
-	private ArrayList<Results> dailyResults;
 	private ArrayList<DataModelListener> listeners;
 	private ArrayList<Packet> packets;
 	private SharedPreferences sharedPrefs;
@@ -77,7 +77,6 @@ public class DataModel
 	public DataModel(SharedPreferences sharedPrefs, Context context)
 	{
 		this.results = new ArrayList<Results>();
-		this.dailyResults = new ArrayList<Results>();
 		this.listeners = new ArrayList<DataModelListener>();
 		this.packets = new ArrayList<Packet>();
 		this.sharedPrefs = sharedPrefs;
@@ -125,21 +124,9 @@ public class DataModel
 		return results;
 	}
 
-	public ArrayList<Results> getDailyResults()
-	{
-		return dailyResults;
-	}
-
-	public void setDailyResults(ArrayList<Results> dailyResults)
-	{
-		this.dailyResults = dailyResults;
-	}
-
 	public void addResultObject(Results result)
 	{
 		this.results.add(result);
-		// Add to Daily Results
-		this.dailyResults.add(result);
 	}
 
 	public int getNumberOfMeasurements()
@@ -147,9 +134,9 @@ public class DataModel
 		return results.size();
 	}
 
-	public long getTotalUsedData()
+	public double getTotalUsedData()
 	{
-		long usedData = 0;
+		double usedData = 0;
 		for (int i = 0; i < results.size(); i++)
 		{
 			usedData = usedData + results.get(i).getUsedData();
@@ -234,6 +221,8 @@ public class DataModel
 			return "PP-Sniffer";
 		case DataModel.GPING_SNIFFER:
 			return "Gping-Sniffer";
+		case DataModel.RTT_YOUTUBE:
+			return "Youtube-RTT";
 		case DataModel.TEST:
 			return "Test";
 		default:
@@ -264,7 +253,7 @@ public class DataModel
 		return timestamp;
 	}
 
-	public Bandwidths calculateTimefromPackets(int method)
+	public Bandwidths calculateTimefromPackets(int method, double usedData)
 	{
 		if (this.packets.isEmpty())
 		{
@@ -349,10 +338,10 @@ public class DataModel
 		Bandwidths data = null;
 		if (method == DataModel.PACKETPAIR)
 		{
-			data = new Bandwidths(DataModel.PP_SNIFFER, bandwidths);
+			data = new Bandwidths(DataModel.PP_SNIFFER, bandwidths, usedData);
 		} else if (method == DataModel.GPING)
 		{
-			data = new Bandwidths(DataModel.GPING_SNIFFER, bandwidths);
+			data = new Bandwidths(DataModel.GPING_SNIFFER, bandwidths, usedData);
 		}
 		return data;
 	}
@@ -375,7 +364,7 @@ public class DataModel
 		// Get exakt Date
 		Calendar cal = Calendar.getInstance();
 		SimpleDateFormat dt = new SimpleDateFormat("d.M.yyyy,HH.mm.ss",
-				Locale.US);
+				Locale.GERMAN);
 		DateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.MEDIUM);
 
 		// if User has enabled that time should be inexactly, than the time is
@@ -430,7 +419,19 @@ public class DataModel
 		{
 			map.put(DataModel.DOWNLOAD, 1);
 		}
-
+		if (this.sharedPrefs.getBoolean(this.context
+				.getString(R.string.youtube_rtt_key), this.context
+				.getResources().getBoolean(R.bool.youtube_rtt_default)))
+		{
+			map.put(DataModel.RTT_YOUTUBE, round);
+		}
+		if (this.sharedPrefs.getBoolean(
+				this.context.getString(R.string.youtube_download_key),
+				this.context.getResources().getBoolean(
+						R.bool.youtube_download_default)))
+		{
+			map.put(DataModel.DOWNLOAD_YOUTUBE, 1);
+		}
 		return map;
 	}
 
@@ -557,51 +558,23 @@ public class DataModel
 		return resultObject;
 	}
 
-	public void saveData() throws FileNotFoundException,
+	public synchronized void saveData() throws FileNotFoundException,
 			IllegalArgumentException, IOException
 	{
-		FileOutputStream fos = this.context.openFileOutput(DataModel.SAVEFILE,
-				Context.MODE_PRIVATE);
-
 		Gson gson = new Gson();
+
+		// Transform Results into JSON-String
+		String writeResultstoFile = gson.toJson(this.results);
 
 		// Save all Results
-		fos.write(gson.toJson(this.results).getBytes());
-		fos.flush();
-
-		// Save Daily Results
-		fos = this.context.openFileOutput(DataModel.SAVEFILEDAY,
+		FileOutputStream fos = this.context.openFileOutput(DataModel.SAVEFILE,
 				Context.MODE_PRIVATE);
-
-		fos.write(gson.toJson(this.dailyResults).getBytes());
+		fos.write(writeResultstoFile.getBytes());
 		fos.flush();
-
-		fos.close();
 	}
 
-	public void loadDailyData() throws FileNotFoundException, IOException
-	{
-		FileInputStream fis;
-
-		fis = context.openFileInput(DataModel.SAVEFILEDAY);
-
-		Reader reader = new InputStreamReader(fis);
-
-		Gson gson = new Gson();
-
-		Type collectionType = new TypeToken<ArrayList<Results>>()
-		{
-		}.getType();
-
-		ArrayList<Results> results = gson.fromJson(reader, collectionType);
-		if (results != null)
-		{
-			this.dailyResults = results;
-		}
-		fis.close();
-	}
-
-	public void loadData() throws FileNotFoundException, IOException
+	public synchronized void loadData() throws FileNotFoundException,
+			IOException
 	{
 		FileInputStream fis;
 
@@ -623,12 +596,13 @@ public class DataModel
 		fis.close();
 	}
 
-	public void deleteSendedData() throws FileNotFoundException, IOException
+	public synchronized void deleteSendedData() throws FileNotFoundException,
+			IOException
 	{
-		this.dailyResults.clear();
+		this.results.clear();
 
-		FileOutputStream fos = this.context.openFileOutput(
-				DataModel.SAVEFILEDAY, Context.MODE_PRIVATE);
+		FileOutputStream fos = this.context.openFileOutput(DataModel.SAVEFILE,
+				Context.MODE_PRIVATE);
 
 		fos.write("".getBytes());
 		fos.flush();
@@ -642,7 +616,6 @@ public class DataModel
 		// Extra data
 		intent.putExtra(DataModel.COMMAND, DataModel.RESULT);
 		intent.putExtra(DataModel.INFORMATION, this.results);
-		intent.putExtra(DataModel.ADDITIONALINFO, this.dailyResults);
 
 		LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
 	}

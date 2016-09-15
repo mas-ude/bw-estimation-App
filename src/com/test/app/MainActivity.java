@@ -77,22 +77,27 @@ public class MainActivity extends Activity implements OnClickListener,
 				.registerReceiver(mMessageReceiver,
 						new IntentFilter(DataModel.BROADCASTRECEIVER));
 
+		Intent serverIntent = new Intent(this, ServerService.class);
+		// Get PendingIntent with unique ID
+		PendingIntent pendingIntent = PendingIntent.getService(this, 0,
+				serverIntent, 0);
+
+		// Start ServerService
+		// Initialize Service to send Data to Server
+		// sharedPrefs.edit().putBoolean("Server", true).apply();
+		if (!sharedPrefs.getBoolean("Server", false))
+		{
+			AlarmManager manager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+			manager.setRepeating(AlarmManager.RTC_WAKEUP,
+					System.currentTimeMillis(), AlarmManager.INTERVAL_DAY,
+					pendingIntent);
+			sharedPrefs.edit().putBoolean("Server", true).apply();
+		}
+
 		// Initialize Model
 		this.model = new DataModel(sharedPrefs, this);
 		this.model.addListener(this);
-
-		// Initialize Service to send Data to Server
-		Intent alarmIntent = new Intent(this, ServerService.class);
-		// Get PendingIntent with unique ID
-		PendingIntent pendingIntent = PendingIntent.getService(this, 0,
-				alarmIntent, 0);
-
-		AlarmManager manager = (AlarmManager) this
-				.getSystemService(Context.ALARM_SERVICE);
-
-		manager.setRepeating(AlarmManager.RTC_WAKEUP,
-				System.currentTimeMillis(), AlarmManager.INTERVAL_HOUR,
-				pendingIntent);
 
 		// Get TextViews
 		console = (TextView) findViewById(R.id.console);
@@ -196,6 +201,27 @@ public class MainActivity extends Activity implements OnClickListener,
 					throw new RuntimeException(e);
 				}
 		}
+
+		// Load trusted Keystore into App Directory
+		File f = new File(getCacheDir() + "/keystore");
+
+		if (!f.exists())
+			try
+			{
+				InputStream is = getAssets().open("keystore");
+				int size = is.available();
+				byte[] buffer = new byte[size];
+				is.read(buffer);
+				is.close();
+				FileOutputStream fos = new FileOutputStream(f);
+				fos.write(buffer);
+				fos.flush();
+				fos.close();
+			} catch (Exception e)
+			{
+				console.setText(console.getText() + "RuntimeException");
+				throw new RuntimeException(e);
+			}
 	}
 
 	@Override
@@ -283,7 +309,6 @@ public class MainActivity extends Activity implements OnClickListener,
 		if (v.getId() == R.id.start_button)
 		{
 			intent.putExtra("Results", model.getResults());
-			intent.putExtra("DailyResults", model.getDailyResults());
 			startService(intent);
 
 			// Reset Button
@@ -407,7 +432,7 @@ public class MainActivity extends Activity implements OnClickListener,
 					usedData.setText(getResources()
 							.getString(R.string.useddata)
 							+ "\n~ "
-							+ model.getTotalUsedData() + " KB\n");
+							+ model.getTotalUsedData() / 1000 + " KB\n");
 
 					// Update Measurement Period
 					period.setText(getResources().getString(R.string.period)
@@ -533,7 +558,6 @@ public class MainActivity extends Activity implements OnClickListener,
 
 				// Set Results to Model
 				model.setResults(results);
-				model.setDailyResults(dailyResults);
 
 				// Inform Views
 				model.informMeasurementListeners();
