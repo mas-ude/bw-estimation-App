@@ -145,8 +145,8 @@ void print_packet(unsigned char* Buffer, int Size)
         	ioctl(sock_raw, SIOCGSTAMPNS, &tv);
         	ptm = gmtime(&tv.tv_sec);
         	// Print all relevant Information
-        	//printf("%s-%s-%d-%d.%d.%d,%d:%d:%d.%ld\n", s, d, Size,
-        	// ptm->tm_mday, (ptm->tm_mon + 1), (1900 + ptm->tm_year), (ptm->tm_hour + 1), ptm->tm_min, ptm->tm_sec, tv.tv_nsec);
+        	printf("%s-%s-%d-%d.%d.%d,%d:%d:%d.%ld\n", s, d, Size,
+        	 ptm->tm_mday, (ptm->tm_mon + 1), (1900 + ptm->tm_year), (ptm->tm_hour + 1), ptm->tm_min, ptm->tm_sec, tv.tv_nsec);
         	flush_buffer();
         }
 }
